@@ -1,0 +1,32 @@
+[package]
+name = "branchsense-java"
+description = "Java language adapter for BranchSense."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+branchsense-core = { path = "../branchsense-core" }
+branchsense-language = { path = "../branchsense-language" }
+branchsense-parser = { path = "../branchsense-parser" }
+thiserror.workspace = true
+tree-sitter.workspace = true
+tree-sitter-java.workspace = true
+
+[dev-dependencies]
+criterion.workspace = true
+
+[[bench]]
+name = "java_parse"
+harness = false
+
+[lints]
+workspace = true
