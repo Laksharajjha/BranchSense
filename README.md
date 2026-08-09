@@ -9,9 +9,9 @@ It is not an AI coding assistant, editor extension, or merge tool.
 ## Status
 
 The project is in an early alpha. The current milestone provides the semantic
-domain model, generic parser and language-adapter contracts, and the first
-Tree-sitter-backed Java parser. Git inspection, semantic extraction, graph
-maintenance, and conflict prediction are not implemented yet.
+domain model, parser and language-adapter contracts, the first Tree-sitter-backed
+Java parser, and the canonical semantic vocabulary. Git inspection, semantic
+extraction, graph maintenance, and conflict prediction are not implemented yet.
 
 ## Quick start
 
@@ -21,6 +21,7 @@ Install stable Rust using [rustup](https://rustup.rs), then run:
 cargo run --bin branchsense -- --help
 cargo run --bin branchsense -- version
 cargo run --bin branchsense -- parse crates/branchsense-java/tests/fixtures/Hello.java
+cargo run --bin branchsense -- inspect crates/branchsense-extractor-java/tests/fixtures/SpringApplication.java
 ```
 
 ## Workspace
@@ -31,6 +32,8 @@ cargo run --bin branchsense -- parse crates/branchsense-java/tests/fixtures/Hell
 | `branchsense-parser` | Language-neutral parser traits, parsed-document abstraction, incremental edit contract, diagnostics, configuration, and registry. |
 | `branchsense-language` | Language adapter metadata, capabilities, lifecycle sessions, compatibility checks, negotiation, and registry. |
 | `branchsense-java` | Tree-sitter-backed Java parser, recovery diagnostics, incremental parsing, and tree statistics. |
+| `branchsense-semantic` | Language-independent semantic facts, symbol definitions, references, relationships, and fact batches. |
+| `branchsense-extractor-java` | Java syntax-to-semantic-fact extraction with recovery diagnostics and benchmarks. |
 | `branchsense` | The CLI binary, argument parsing, command dispatch, and process logging. |
 
 The semantic model is organized into explicit domain boundaries:
@@ -74,6 +77,7 @@ command output is written to stdout.
 - [Error handling strategy](docs/error-handling.md)
 - [Parser abstraction](docs/parser.md)
 - [Language adapter framework](docs/language-adapter.md)
+- [Java semantic extractor](docs/java-extractor.md)
 - [Roadmap](ROADMAP.md)
 - [Contributing guide](CONTRIBUTING.md)
 

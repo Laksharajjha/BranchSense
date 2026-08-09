@@ -34,5 +34,8 @@ The APIs are experimental and may change before the first stable release.
 - Semantic extraction or symbol/dependency graph construction.
 - Git analysis, merge-conflict prediction, BCS, networking, or editor clients.
 
+The alpha APIs are experimental and may change without a compatibility
+guarantee. See the project roadmap for planned milestones.
+
 [Unreleased]: https://github.com/Laksharajjha/BranchSense/compare/v0.1.0-alpha...HEAD
 [0.1.0-alpha]: https://github.com/Laksharajjha/BranchSense/releases/tag/v0.1.0-alpha

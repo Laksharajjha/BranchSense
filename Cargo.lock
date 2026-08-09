@@ -78,9 +78,11 @@ name = "branchsense"
 version = "0.1.0-alpha"
 dependencies = [
  "branchsense-core",
+ "branchsense-extractor-java",
  "branchsense-java",
  "branchsense-language",
  "branchsense-parser",
+ "branchsense-semantic",
  "clap",
  "thiserror",
  "tracing",
@@ -91,6 +93,19 @@ dependencies = [
 name = "branchsense-core"
 version = "0.1.0-alpha"
 dependencies = [
+ "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "branchsense-extractor-java"
+version = "0.1.0-alpha"
+dependencies = [
+ "branchsense-core",
+ "branchsense-java",
+ "branchsense-parser",
+ "branchsense-semantic",
+ "criterion",
  "serde",
  "thiserror",
 ]
@@ -126,6 +141,16 @@ dependencies = [
  "branchsense-core",
  "criterion",
  "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "branchsense-semantic"
+version = "0.1.0-alpha"
+dependencies = [
+ "branchsense-core",
+ "serde",
+ "serde_json",
  "thiserror",
 ]
 

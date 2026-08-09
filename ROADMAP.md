@@ -20,19 +20,31 @@
 - Incremental document parsing and syntax diagnostics ✅
 - Parser conformance fixtures and large-file benchmark ✅
 
-## Milestone 4 — Workspace identity and Git discovery
+## Milestone 4 — Semantic vocabulary ✅
+
+- Language-independent symbol definitions and typed references
+- Calls, imports, type relations, annotations, documentation, and dependencies
+- Identified immutable fact records with serde support
+
+## Milestone 5 — Java semantic extraction ✅
+
+- Java declarations, imports, parameters, fields, annotations, and documentation
+- Inheritance, interface implementation, containment, and call facts
+- Partial extraction with structured malformed-source diagnostics
+
+## Milestone 6 — Workspace identity and Git discovery
 
 - Repository discovery through `gix`
 - Canonical workspace/session lifecycle
 - Configuration loading and diagnostic reporting
 
-## Milestone 5 — Semantic graph foundation
+## Milestone 7 — Semantic graph foundation
 
 - Stable symbol/dependency graph schema
 - Transactional graph deltas and snapshots
 - Incremental invalidation indexes
 
-## Milestone 6 — Query and observability surface
+## Milestone 8 — Query and observability surface
 
 - Versioned local query protocol
 - CLI graph inspection and diagnostic bundles
