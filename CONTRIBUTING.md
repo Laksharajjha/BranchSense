@@ -11,13 +11,36 @@ behavior.
 3. Run the quality checks from the repository root:
 
    ```sh
-   cargo fmt --check
+   cargo fmt --all -- --check
    cargo clippy --workspace --all-targets -- -D warnings
    cargo test --workspace
    ```
 
 4. Explain the user-visible behavior, architectural impact, and validation in
    the pull request description.
+
+## Commit messages
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) so the history
+and release notes remain easy to scan. Prefer a focused commit with a type and
+scope, for example:
+
+```text
+feat(java): add Tree-sitter Java parser adapter
+fix(cli): report recovered Java syntax errors
+docs: document the alpha release
+```
+
+Keep implementation, tests, and documentation for one change together when
+that makes the commit easier to review. Avoid mixing unrelated refactors into
+feature commits.
+
+## Release checklist
+
+Release candidates must have a clean working tree, passing CI, updated
+`CHANGELOG.md`, verified package metadata and license, and a signed or
+annotated version tag created by a maintainer. Alpha releases should state
+their limitations explicitly and must not imply API stability.
 
 ## Rust conventions
 

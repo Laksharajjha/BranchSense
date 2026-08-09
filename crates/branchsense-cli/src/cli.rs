@@ -68,12 +68,20 @@ fn parse_java(path: &Path) -> Result<()> {
         )?;
     let statistics = tree.statistics();
 
+    if result.has_errors() {
+        println!("✗ File parsed with syntax errors");
+    } else {
+        println!("✓ File parsed successfully");
+    }
+    println!();
     println!("Language: {:?}", result.document().language());
-    println!("Parse success: {}", !result.has_errors());
-    println!("Node count: {}", statistics.node_count());
-    println!("Depth: {}", statistics.depth());
-    println!("Elapsed time: {elapsed:?}");
-    println!("Diagnostics: {}", result.diagnostics().len());
+    println!();
+    println!("Tree Statistics");
+    println!();
+    println!("- Total nodes: {}", statistics.node_count());
+    println!("- Tree depth: {}", statistics.depth());
+    println!("- Parse duration: {elapsed:?}");
+    println!("- Syntax errors: {}", result.diagnostics().len());
     debug!(path = %path.display(), elapsed = ?elapsed, "parsed Java source");
     Ok(())
 }

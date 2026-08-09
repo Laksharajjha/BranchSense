@@ -36,5 +36,11 @@ jobs:
       - name: Run tests
         run: cargo test --workspace
 
+      - name: Check documentation
+        run: RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
+
+      - name: Compile Java benchmark
+        run: cargo bench -p branchsense-java --bench java_parse --no-run
+
       - name: Build release binary
         run: cargo build --release --bin branchsense
