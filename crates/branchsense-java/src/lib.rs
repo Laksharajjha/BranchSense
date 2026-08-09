@@ -11,7 +11,7 @@ mod syntax_tree;
 
 pub use adapter::JavaAdapter;
 pub use parser::JavaParser;
-pub use syntax_tree::{JavaSyntaxTree, TreeStatistics};
+pub use syntax_tree::{JavaNode, JavaSyntaxTree, TreeStatistics};
 
 #[cfg(test)]
 mod tests;

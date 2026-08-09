@@ -5,6 +5,8 @@ members = [
     "crates/branchsense-parser",
     "crates/branchsense-language",
     "crates/branchsense-java",
+    "crates/branchsense-semantic",
+    "crates/branchsense-extractor-java",
 ]
 default-members = ["crates/branchsense-cli"]
 resolver = "3"
@@ -28,6 +30,7 @@ criterion = "0.5.1"
 gix = "0.74.1"
 petgraph = "0.8.3"
 serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.135"
 thiserror = "2.0.11"
 tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.41"

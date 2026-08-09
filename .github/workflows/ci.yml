@@ -42,5 +42,8 @@ jobs:
       - name: Compile Java benchmark
         run: cargo bench -p branchsense-java --bench java_parse --no-run
 
+      - name: Compile Java extraction benchmark
+        run: cargo bench -p branchsense-extractor-java --bench java_extract --no-run
+
       - name: Build release binary
         run: cargo build --release --bin branchsense
