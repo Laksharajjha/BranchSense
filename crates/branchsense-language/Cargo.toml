@@ -1,0 +1,30 @@
+[package]
+name = "branchsense-language"
+description = "Language adapter lifecycle, capabilities, negotiation, and registry for BranchSense."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+branchsense-core = { path = "../branchsense-core" }
+branchsense-parser = { path = "../branchsense-parser" }
+serde.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+criterion.workspace = true
+
+[[bench]]
+name = "adapter_registry"
+harness = false
+
+[lints]
+workspace = true

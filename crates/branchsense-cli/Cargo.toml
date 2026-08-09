@@ -1,0 +1,31 @@
+[package]
+name = "branchsense"
+description = "Command-line interface for the BranchSense semantic intelligence engine."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[[bin]]
+name = "branchsense"
+path = "src/main.rs"
+
+[dependencies]
+branchsense-core = { path = "../branchsense-core" }
+branchsense-java = { path = "../branchsense-java" }
+branchsense-language = { path = "../branchsense-language" }
+branchsense-parser = { path = "../branchsense-parser" }
+clap.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[lints]
+workspace = true
