@@ -10,14 +10,14 @@ default-members = ["crates/branchsense-cli"]
 resolver = "3"
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.0-alpha"
 edition = "2024"
 rust-version = "1.85"
 authors = ["BranchSense Contributors"]
-license = "MIT"
-repository = "https://github.com/branchsense/branchsense"
-homepage = "https://github.com/branchsense/branchsense"
-documentation = "https://github.com/branchsense/branchsense"
+license = "Apache-2.0"
+repository = "https://github.com/Laksharajjha/BranchSense"
+homepage = "https://github.com/Laksharajjha/BranchSense"
+documentation = "https://github.com/Laksharajjha/BranchSense/tree/main/docs"
 readme = "README.md"
 keywords = ["git", "semantic-analysis", "developer-tools"]
 categories = ["command-line-utilities", "development-tools"]

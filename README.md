@@ -8,10 +8,10 @@ It is not an AI coding assistant, editor extension, or merge tool.
 
 ## Status
 
-The project is in Milestone 1: a production-oriented Rust workspace, CLI
-foundation, quality gates, and public project governance. Parsing, Git
-inspection, graph maintenance, and prediction are deliberately not implemented
-in this milestone.
+The project is in an early alpha. The current milestone provides the semantic
+domain model, generic parser and language-adapter contracts, and the first
+Tree-sitter-backed Java parser. Git inspection, semantic extraction, graph
+maintenance, and conflict prediction are not implemented yet.
 
 ## Quick start
 
@@ -20,6 +20,7 @@ Install stable Rust using [rustup](https://rustup.rs), then run:
 ```sh
 cargo run --bin branchsense -- --help
 cargo run --bin branchsense -- version
+cargo run --bin branchsense -- parse crates/branchsense-java/tests/fixtures/Hello.java
 ```
 
 ## Workspace
@@ -45,20 +46,19 @@ crates/branchsense-core/src/
 └── value_objects/   immutable positions, ranges, names, visibility, and language values
 ```
 
-This milestone intentionally stops at the semantic model. It does not parse
-source, inspect Git, mutate a graph, expose networking, or integrate an editor.
+This milestone intentionally stops before semantic extraction and graph
+maintenance. It does not inspect Git, expose networking, integrate an editor,
+or predict conflicts.
 
 The root manifest centrally pins the selected ecosystem: `tree-sitter` for
 incremental parsing, `gix` (gitoxide) for Git access, `petgraph` as the initial
 graph backend, `tokio` for runtime scheduling, and `serde`, `tracing`, and
-`clap` for shared infrastructure. Parser, Git, and graph dependencies remain
-unlinked until their implementation milestones; this keeps Milestone 1 small
-and avoids shipping unused behavior.
+`clap` for shared infrastructure.
 
 ## Development
 
 ```sh
-cargo fmt --check
+cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
@@ -79,4 +79,4 @@ command output is written to stdout.
 
 ## License
 
-BranchSense is released under the [MIT License](LICENSE).
+BranchSense is released under the [Apache License 2.0](LICENSE).
