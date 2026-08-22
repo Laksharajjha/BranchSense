@@ -17,6 +17,8 @@ and releases use semantic versioning with an explicit alpha phase.
 - `branchsense-index` with deterministic Java source discovery, ignored
   directory handling, repository-wide graph construction, structured
   diagnostics, and content-based incremental reuse.
+- Exact fully qualified cross-file imports and references resolve through the
+  graph symbol index; short-name and scope-dependent references remain explicit.
 - `branchsense index <path>` and `--project` query execution over one
   repository graph snapshot.
 - `branchsense-query` with exact symbol lookup, relationship queries, and

@@ -55,11 +55,13 @@ diagnostic, and extraction diagnostic counts.
 ## Cross-file semantics
 
 The repository graph contains facts from every discovered document and query
-APIs operate over that one graph. The current Java extractor emits unresolved
-method calls and type references when classpath and scope information is not
-available. The indexer preserves those states and never equates symbols by
-short name alone. Deterministic cross-file resolution requires import, scope,
-and Java classpath modeling and is the next semantic analysis milestone.
+APIs operate over that one graph. Exact fully qualified imports and references
+are resolved against the repository symbol index. The current Java extractor
+still emits unresolved method calls and type references when only short names,
+receiver scope, or classpath information is available. The indexer preserves
+those states and never equates symbols by short name alone. Deterministic
+scope-aware Java resolution and classpath modeling are the next semantic
+analysis milestone.
 
 ## CLI
 
