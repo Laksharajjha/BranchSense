@@ -228,7 +228,28 @@ impl SemanticGraph {
         revision_id: Option<RevisionId>,
         document_facts: BTreeMap<DocumentId, SemanticFactSet>,
     ) -> Result<Self> {
-        let mut graph = Self { revision_id, document_facts, ..Self::default() };
+        let mut normalized_documents = BTreeMap::new();
+        for (document_id, facts) in document_facts {
+            let mut records = BTreeMap::new();
+            for record in facts.facts() {
+                if let Some(existing) = records.get(record.id()) {
+                    if existing != record {
+                        return Err(GraphError::DuplicateFact {
+                            fact_id: record.id().as_str().into(),
+                        });
+                    }
+                } else {
+                    records.insert(record.id().clone(), record.clone());
+                }
+            }
+            let mut normalized = SemanticFactSet::new(records.into_values().collect());
+            if let Some(provenance) = facts.provenance() {
+                normalized = normalized.with_provenance(provenance.clone());
+            }
+            normalized_documents.insert(document_id, normalized);
+        }
+        let mut graph =
+            Self { revision_id, document_facts: normalized_documents, ..Self::default() };
         let batches: Vec<(DocumentId, SemanticFactSet)> = graph
             .document_facts
             .iter()
@@ -355,14 +376,18 @@ impl SemanticGraph {
             ),
             SemanticFact::TypeRelation(fact) => self.add_type_relation(record, fact, provenance),
             SemanticFact::Import(fact) => self.add_import(record, fact, provenance),
-            SemanticFact::Documentation(fact) => self.add_edge(
-                record,
-                GraphNodeId::Symbol(fact.subject().clone()),
-                GraphNodeId::Unresolved(branchsense_core::QualifiedName::new("documentation")?),
-                EdgeKind::Documents,
-                None,
-                provenance,
-            ),
+            SemanticFact::Documentation(fact) => {
+                let target =
+                    self.ensure_unresolved(branchsense_core::QualifiedName::new("documentation")?)?;
+                self.add_edge(
+                    record,
+                    GraphNodeId::Symbol(fact.subject().clone()),
+                    target,
+                    EdgeKind::Documents,
+                    None,
+                    provenance,
+                )
+            }
             SemanticFact::Annotation(fact) => self.add_annotation(record, fact, provenance),
             SemanticFact::Dependency(fact) => self.add_reference_edge(
                 record,
