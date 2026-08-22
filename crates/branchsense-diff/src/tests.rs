@@ -118,3 +118,34 @@ fn identical_snapshot_comparison_is_unchanged() {
     assert!(diff.symbols().iter().all(|change| change.kind() == ChangeKind::Unchanged));
     assert_eq!(snapshot.graph().statistics().documents(), 1);
 }
+
+#[test]
+fn type_relations_are_classified() {
+    let root = repository(
+        "/** service */\npackage payment;\ninterface Payable {}\nclass Base {}\npublic class PaymentService extends Base implements Payable {\n    public void process() {}\n}",
+    );
+    let before = snapshot(&root);
+    fs::write(
+        root.path().join("src/PaymentService.java"),
+        "package payment;\ninterface Auditable {}\nclass OtherBase {}\npublic class PaymentService extends OtherBase implements Auditable {\n    private final void process() {}\n}",
+    )
+    .expect("changed declaration source");
+    let after = snapshot(&root);
+    let diff = SemanticDiffer::new().diff(&before, &after);
+
+    let service = diff
+        .symbols()
+        .iter()
+        .find(|change| {
+            change.kind() == ChangeKind::Modified
+                && change
+                    .after()
+                    .or(change.before())
+                    .and_then(|definition| definition.qualified_name())
+                    .is_some_and(|name| name.as_str() == "payment.PaymentService")
+        })
+        .expect("modified service declaration");
+    assert!(service.reasons().contains(&SymbolChangeReason::SuperclassChanged));
+    assert!(service.reasons().contains(&SymbolChangeReason::InterfaceAdded));
+    assert!(service.reasons().contains(&SymbolChangeReason::InterfaceRemoved));
+}
