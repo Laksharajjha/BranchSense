@@ -14,6 +14,10 @@ and releases use semantic versioning with an explicit alpha phase.
 
 ### Added
 
+- `branchsense-diff` for deterministic document, fact, symbol, and relationship
+  comparison between immutable semantic index snapshots.
+- Structured callable signature-change reasons, including parameter and return
+  type changes, without claiming unsupported rename detection.
 - `branchsense-index` with deterministic Java source discovery, ignored
   directory handling, repository-wide graph construction, structured
   diagnostics, and content-based incremental reuse.
