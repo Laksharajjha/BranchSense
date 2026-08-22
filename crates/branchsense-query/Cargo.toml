@@ -1,0 +1,26 @@
+[package]
+name = "branchsense-query"
+description = "Read-only semantic queries over BranchSense graph snapshots"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+branchsense-core = { path = "../branchsense-core" }
+branchsense-graph = { path = "../branchsense-graph" }
+branchsense-semantic = { path = "../branchsense-semantic" }
+thiserror.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
