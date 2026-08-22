@@ -143,7 +143,7 @@ fn imports_inheritance_and_implementations_preserve_edge_kinds() {
         ),
     ];
     let graph = graph(facts);
-    let kinds = graph.edges().map(|edge| edge.kind()).collect::<Vec<_>>();
+    let kinds = graph.edges().map(crate::model::GraphEdge::kind).collect::<Vec<_>>();
     assert!(kinds.contains(&EdgeKind::Imports));
     assert!(kinds.contains(&EdgeKind::Extends));
     assert!(kinds.contains(&EdgeKind::Implements));
@@ -257,6 +257,6 @@ fn fact_delta_application_replaces_document_facts() {
     let delta =
         FactDelta::between(document(), revision("revision:two"), Some(&old_facts), &new_facts);
     let updated = graph.apply_delta(&delta).expect("delta applies");
-    assert!(updated.find_symbol(&invoice.id()).is_some());
+    assert!(updated.find_symbol(invoice.id()).is_some());
     assert_eq!(updated.revision_id().expect("revision").as_str(), "revision:two");
 }

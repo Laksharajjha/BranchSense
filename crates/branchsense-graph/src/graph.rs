@@ -35,6 +35,11 @@ impl SemanticGraph {
     }
 
     /// Creates a graph containing one document's facts.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GraphError`] when fact identities, ownership, or endpoints
+    /// are inconsistent.
     pub fn from_document_facts(
         document_id: DocumentId,
         revision_id: RevisionId,
@@ -47,6 +52,11 @@ impl SemanticGraph {
     }
 
     /// Creates a graph from document-owned fact sets.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GraphError`] when fact identities, ownership, or endpoints
+    /// are inconsistent.
     pub fn from_documents(
         revision_id: RevisionId,
         documents: Vec<branchsense_semantic::DocumentFactSet>,
@@ -71,6 +81,10 @@ impl SemanticGraph {
     /// document fact state. This is intentionally correct and deterministic;
     /// the delta API prevents downstream consumers from depending on that
     /// internal strategy and enables future copy-on-write optimization.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GraphError`] when the delta creates an invalid graph state.
     pub fn apply_delta(&self, delta: &FactDelta) -> Result<Self> {
         let document_id = delta.document_id().ok_or_else(|| GraphError::MissingEndpoint {
             edge_id: "delta-without-document".into(),
@@ -103,6 +117,11 @@ impl SemanticGraph {
     }
 
     /// Atomically replaces all facts owned by one document.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GraphError`] when the replacement creates an invalid graph
+    /// state.
     pub fn replace_document_facts(
         &self,
         document_id: DocumentId,
@@ -115,6 +134,10 @@ impl SemanticGraph {
     }
 
     /// Atomically removes a document and all facts it owns.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`GraphError`] when rebuilding the resulting snapshot fails.
     pub fn remove_document(
         &self,
         document_id: &DocumentId,
@@ -258,7 +281,7 @@ impl SemanticGraph {
         for (document_id, facts) in &batches {
             graph.insert_node(GraphNode::Document { id: document_id.clone() })?;
             for record in facts.facts() {
-                graph.validate_fact_document(document_id, record)?;
+                Self::validate_fact_document(document_id, record)?;
                 if let SemanticFact::Definition(definition) = record.fact() {
                     graph.insert_symbol(definition, document_id)?;
                 } else if let SemanticFact::Parameter(parameter) = record.fact() {
@@ -274,11 +297,7 @@ impl SemanticGraph {
         Ok(graph)
     }
 
-    fn validate_fact_document(
-        &self,
-        document_id: &DocumentId,
-        record: &SemanticFactRecord,
-    ) -> Result<()> {
+    fn validate_fact_document(document_id: &DocumentId, record: &SemanticFactRecord) -> Result<()> {
         let location_document =
             fact_location(record).map(|location| location.document_id().clone());
         if let Some(actual) = location_document {
