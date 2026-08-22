@@ -24,6 +24,7 @@ branchsense-graph = { path = "../branchsense-graph" }
 branchsense-java = { path = "../branchsense-java" }
 branchsense-language = { path = "../branchsense-language" }
 branchsense-parser = { path = "../branchsense-parser" }
+branchsense-query = { path = "../branchsense-query" }
 branchsense-semantic = { path = "../branchsense-semantic" }
 clap.workspace = true
 thiserror.workspace = true
