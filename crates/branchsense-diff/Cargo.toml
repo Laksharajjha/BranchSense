@@ -1,0 +1,31 @@
+[package]
+name = "branchsense-diff"
+description = "Deterministic semantic snapshot comparison for BranchSense"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+branchsense-core = { path = "../branchsense-core" }
+branchsense-index = { path = "../branchsense-index" }
+branchsense-semantic = { path = "../branchsense-semantic" }
+serde.workspace = true
+
+[dev-dependencies]
+criterion.workspace = true
+tempfile.workspace = true
+
+[[bench]]
+name = "semantic_diff"
+harness = false
+
+[lints]
+workspace = true
