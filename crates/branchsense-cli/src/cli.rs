@@ -8,6 +8,7 @@ use std::{
 use branchsense_core::{BuildInfo, DocumentId, Language, QualifiedName, RevisionId};
 use branchsense_extractor_java::JavaExtractor;
 use branchsense_graph::{EdgeKind, SemanticGraph};
+use branchsense_index::{IndexOptions, RepositoryIndex};
 use branchsense_java::{JavaAdapter, JavaSyntaxTree};
 use branchsense_language::{AdapterConfig, AdapterRegistry};
 use branchsense_query::{Query, QueryNode, QueryOptions, QueryResult, RelationshipResult};
@@ -43,45 +44,65 @@ enum Command {
         #[arg(long)]
         graph: bool,
     },
+    /// Index all Java sources below a repository or project path.
+    Index {
+        /// Repository or project path to index.
+        path: PathBuf,
+    },
     /// Query callers of a symbol in one Java source graph.
     Callers {
         /// Fully qualified symbol name.
         symbol: String,
         /// Java source file used to build the graph.
-        #[arg(long)]
-        file: PathBuf,
+        #[arg(long, conflicts_with = "project", required_unless_present = "project")]
+        file: Option<PathBuf>,
+        /// Repository or project path to index.
+        #[arg(long, conflicts_with = "file", required_unless_present = "file")]
+        project: Option<PathBuf>,
     },
     /// Query callees of a symbol in one Java source graph.
     Callees {
         /// Fully qualified symbol name.
         symbol: String,
         /// Java source file used to build the graph.
-        #[arg(long)]
-        file: PathBuf,
+        #[arg(long, conflicts_with = "project", required_unless_present = "project")]
+        file: Option<PathBuf>,
+        /// Repository or project path to index.
+        #[arg(long, conflicts_with = "file", required_unless_present = "file")]
+        project: Option<PathBuf>,
     },
     /// Query references to a symbol in one Java source graph.
     References {
         /// Fully qualified symbol name.
         symbol: String,
         /// Java source file used to build the graph.
-        #[arg(long)]
-        file: PathBuf,
+        #[arg(long, conflicts_with = "project", required_unless_present = "project")]
+        file: Option<PathBuf>,
+        /// Repository or project path to index.
+        #[arg(long, conflicts_with = "file", required_unless_present = "file")]
+        project: Option<PathBuf>,
     },
     /// Query implementations of a type in one Java source graph.
     Implementations {
         /// Fully qualified symbol name.
         symbol: String,
         /// Java source file used to build the graph.
-        #[arg(long)]
-        file: PathBuf,
+        #[arg(long, conflicts_with = "project", required_unless_present = "project")]
+        file: Option<PathBuf>,
+        /// Repository or project path to index.
+        #[arg(long, conflicts_with = "file", required_unless_present = "file")]
+        project: Option<PathBuf>,
     },
     /// Query dependencies of a symbol in one Java source graph.
     Dependencies {
         /// Fully qualified symbol name.
         symbol: String,
         /// Java source file used to build the graph.
-        #[arg(long)]
-        file: PathBuf,
+        #[arg(long, conflicts_with = "project", required_unless_present = "project")]
+        file: Option<PathBuf>,
+        /// Repository or project path to index.
+        #[arg(long, conflicts_with = "file", required_unless_present = "file")]
+        project: Option<PathBuf>,
     },
 }
 
@@ -96,20 +117,36 @@ impl Cli {
             }
             Command::Parse { path } => parse_java(&path)?,
             Command::Inspect { path, graph } => inspect_java(&path, graph)?,
-            Command::Callers { symbol, file } => {
-                query_java(&file, &symbol, QueryOperation::Callers)?;
+            Command::Index { path } => index_repository(&path)?,
+            Command::Callers { symbol, file, project } => {
+                query_java(file.as_deref(), project.as_deref(), &symbol, QueryOperation::Callers)?;
             }
-            Command::Callees { symbol, file } => {
-                query_java(&file, &symbol, QueryOperation::Callees)?;
+            Command::Callees { symbol, file, project } => {
+                query_java(file.as_deref(), project.as_deref(), &symbol, QueryOperation::Callees)?;
             }
-            Command::References { symbol, file } => {
-                query_java(&file, &symbol, QueryOperation::References)?;
+            Command::References { symbol, file, project } => {
+                query_java(
+                    file.as_deref(),
+                    project.as_deref(),
+                    &symbol,
+                    QueryOperation::References,
+                )?;
             }
-            Command::Implementations { symbol, file } => {
-                query_java(&file, &symbol, QueryOperation::Implementations)?;
+            Command::Implementations { symbol, file, project } => {
+                query_java(
+                    file.as_deref(),
+                    project.as_deref(),
+                    &symbol,
+                    QueryOperation::Implementations,
+                )?;
             }
-            Command::Dependencies { symbol, file } => {
-                query_java(&file, &symbol, QueryOperation::Dependencies)?;
+            Command::Dependencies { symbol, file, project } => {
+                query_java(
+                    file.as_deref(),
+                    project.as_deref(),
+                    &symbol,
+                    QueryOperation::Dependencies,
+                )?;
             }
         }
         Ok(())
@@ -125,8 +162,57 @@ enum QueryOperation {
     Dependencies,
 }
 
-fn query_java(path: &Path, name: &str, operation: QueryOperation) -> Result<()> {
-    let graph = graph_for_java(path)?;
+fn index_repository(path: &Path) -> Result<()> {
+    let result = RepositoryIndex::new(IndexOptions::default())
+        .index(path, None)
+        .map_err(|error| CliError::Command(error.to_string()))?;
+    let report = result.report();
+    let statistics = result.snapshot().graph().statistics();
+    println!("Repository");
+    println!();
+    println!("Root: {}", result.snapshot().repository().root().display());
+    println!("Files discovered: {}", report.discovered());
+    println!("Files indexed: {}", report.indexed());
+    println!("Files unchanged: {}", report.unchanged());
+    println!("Files skipped: {}", report.skipped());
+    println!("Parse diagnostics: {}", report.parse_diagnostics());
+    println!("Extraction diagnostics: {}", report.extraction_diagnostics());
+    println!();
+    println!("Semantic Graph");
+    println!();
+    println!("Documents: {}", statistics.documents());
+    println!("Symbols: {}", statistics.symbols());
+    println!("Nodes: {}", statistics.nodes());
+    println!("Edges: {}", statistics.edges());
+    println!();
+    println!("Index duration: {:?}", report.duration());
+    for diagnostic in report.diagnostics() {
+        println!(
+            "{} [{:?}] {}",
+            diagnostic.path().display(),
+            diagnostic.stage(),
+            diagnostic.message()
+        );
+    }
+    Ok(())
+}
+
+fn query_java(
+    file: Option<&Path>,
+    project: Option<&Path>,
+    name: &str,
+    operation: QueryOperation,
+) -> Result<()> {
+    let graph = if let Some(project) = project {
+        RepositoryIndex::new(IndexOptions::default())
+            .index(project, None)
+            .map_err(|error| CliError::Command(error.to_string()))?
+            .snapshot()
+            .graph()
+            .clone()
+    } else {
+        graph_for_java(file.expect("clap requires a file or project"))?
+    };
     let query = Query::new(&graph);
     let qualified =
         QualifiedName::new(name).map_err(|error| CliError::Command(error.to_string()))?;
