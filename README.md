@@ -10,8 +10,8 @@ It is not an AI coding assistant, editor extension, or merge tool.
 
 The project is in an early alpha. The current milestone provides the semantic
 domain model, parser and language-adapter contracts, the first Tree-sitter-backed
-Java parser, and the canonical semantic vocabulary. Git inspection, semantic
-extraction, graph maintenance, and conflict prediction are not implemented yet.
+Java parser, canonical semantic facts, and Java semantic extraction. Git
+inspection, graph maintenance, and conflict prediction are not implemented yet.
 
 ## Quick start
 
@@ -49,9 +49,8 @@ crates/branchsense-core/src/
 └── value_objects/   immutable positions, ranges, names, visibility, and language values
 ```
 
-This milestone intentionally stops before semantic extraction and graph
-maintenance. It does not inspect Git, expose networking, integrate an editor,
-or predict conflicts.
+This milestone intentionally stops before graph maintenance. It does not
+inspect Git, expose networking, integrate an editor, or predict conflicts.
 
 The root manifest centrally pins the selected ecosystem: `tree-sitter` for
 incremental parsing, `gix` (gitoxide) for Git access, `petgraph` as the initial
@@ -78,6 +77,7 @@ command output is written to stdout.
 - [Parser abstraction](docs/parser.md)
 - [Language adapter framework](docs/language-adapter.md)
 - [Java semantic extractor](docs/java-extractor.md)
+- [Semantic state foundation](docs/semantic-state.md)
 - [Roadmap](ROADMAP.md)
 - [Contributing guide](CONTRIBUTING.md)
 

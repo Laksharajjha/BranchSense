@@ -3,7 +3,7 @@
 use branchsense_core::{Name, QualifiedName, SymbolId};
 use serde::{Deserialize, Serialize};
 
-use crate::{Result, SemanticError};
+use crate::{FactProvenance, Result, SemanticError};
 
 /// The semantic role of a declared symbol.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
@@ -46,20 +46,20 @@ pub enum SymbolKind {
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct TypeReference {
     name: QualifiedName,
-    resolved_symbol: Option<SymbolId>,
+    resolution: ResolutionState,
 }
 
 impl TypeReference {
     /// Creates an unresolved type reference.
     #[must_use]
     pub fn unresolved(name: QualifiedName) -> Self {
-        Self { name, resolved_symbol: None }
+        Self { name, resolution: ResolutionState::Unresolved }
     }
 
     /// Creates a type reference with a resolved symbol identity.
     #[must_use]
     pub fn resolved(name: QualifiedName, symbol: SymbolId) -> Self {
-        Self { name, resolved_symbol: Some(symbol) }
+        Self { name, resolution: ResolutionState::Resolved(symbol) }
     }
 
     /// Returns the referenced qualified name.
@@ -71,7 +71,16 @@ impl TypeReference {
     /// Returns the resolved symbol, when resolution succeeded.
     #[must_use]
     pub fn resolved_symbol(&self) -> Option<&SymbolId> {
-        self.resolved_symbol.as_ref()
+        match &self.resolution {
+            ResolutionState::Resolved(symbol) => Some(symbol),
+            _ => None,
+        }
+    }
+
+    /// Returns the current type resolution state.
+    #[must_use]
+    pub const fn resolution(&self) -> &ResolutionState {
+        &self.resolution
     }
 }
 
@@ -79,20 +88,20 @@ impl TypeReference {
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct SymbolReference {
     name: QualifiedName,
-    resolved_symbol: Option<SymbolId>,
+    resolution: ResolutionState,
 }
 
 impl SymbolReference {
     /// Creates an unresolved symbol reference.
     #[must_use]
     pub fn unresolved(name: QualifiedName) -> Self {
-        Self { name, resolved_symbol: None }
+        Self { name, resolution: ResolutionState::Unresolved }
     }
 
     /// Creates a symbol reference with a resolved identity.
     #[must_use]
     pub fn resolved(name: QualifiedName, symbol: SymbolId) -> Self {
-        Self { name, resolved_symbol: Some(symbol) }
+        Self { name, resolution: ResolutionState::Resolved(symbol) }
     }
 
     /// Returns the referenced qualified name.
@@ -104,8 +113,78 @@ impl SymbolReference {
     /// Returns the resolved symbol, when resolution succeeded.
     #[must_use]
     pub fn resolved_symbol(&self) -> Option<&SymbolId> {
-        self.resolved_symbol.as_ref()
+        match &self.resolution {
+            ResolutionState::Resolved(symbol) => Some(symbol),
+            _ => None,
+        }
     }
+
+    /// Creates an ambiguous reference with all candidate symbols retained.
+    #[must_use]
+    pub fn ambiguous(name: QualifiedName, candidates: Vec<SymbolId>) -> Self {
+        Self { name, resolution: ResolutionState::Ambiguous(candidates) }
+    }
+
+    /// Creates a reference to a symbol outside the indexed workspace.
+    #[must_use]
+    pub fn external(name: QualifiedName, external: ExternalSymbolId) -> Self {
+        Self { name, resolution: ResolutionState::External(external) }
+    }
+
+    /// Creates a reference that could not be resolved because of a diagnostic.
+    #[must_use]
+    pub fn invalid(name: QualifiedName, reason: impl Into<String>) -> Self {
+        Self { name, resolution: ResolutionState::Invalid { reason: reason.into() } }
+    }
+
+    /// Returns the current resolution state.
+    #[must_use]
+    pub const fn resolution(&self) -> &ResolutionState {
+        &self.resolution
+    }
+}
+
+/// Identity for a symbol provided by an external dependency or runtime.
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct ExternalSymbolId(String);
+
+impl ExternalSymbolId {
+    /// Creates an external symbol identity.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SemanticError::EmptyValue`] for an empty value.
+    pub fn new(value: impl Into<String>) -> Result<Self> {
+        let value = value.into();
+        if value.trim().is_empty() {
+            return Err(SemanticError::EmptyValue { kind: "external symbol identifier" });
+        }
+        Ok(Self(value))
+    }
+
+    /// Returns the serialized external identity.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+/// Resolution state of a semantic symbol reference.
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum ResolutionState {
+    /// The reference resolved to exactly one indexed symbol.
+    Resolved(SymbolId),
+    /// No target is currently known.
+    Unresolved,
+    /// Multiple indexed symbols remain possible targets.
+    Ambiguous(Vec<SymbolId>),
+    /// The target is known to exist outside the indexed workspace.
+    External(ExternalSymbolId),
+    /// Resolution failed because the source or analysis was invalid.
+    Invalid {
+        /// Diagnostic explaining why resolution was invalid.
+        reason: String,
+    },
 }
 
 /// Documentation attached to a semantic subject.
@@ -252,13 +331,21 @@ pub enum ReferenceKind {
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SemanticFactSet {
     facts: Vec<crate::SemanticFactRecord>,
+    provenance: Option<FactProvenance>,
 }
 
 impl SemanticFactSet {
     /// Creates a fact set from facts emitted by an adapter.
     #[must_use]
     pub fn new(facts: Vec<crate::SemanticFactRecord>) -> Self {
-        Self { facts }
+        Self { facts, provenance: None }
+    }
+
+    /// Attaches source provenance to this fact batch.
+    #[must_use]
+    pub fn with_provenance(mut self, provenance: FactProvenance) -> Self {
+        self.provenance = Some(provenance);
+        self
     }
 
     /// Returns facts in producer order.
@@ -277,5 +364,11 @@ impl SemanticFactSet {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.facts.is_empty()
+    }
+
+    /// Returns provenance when the producer supplied it.
+    #[must_use]
+    pub fn provenance(&self) -> Option<&FactProvenance> {
+        self.provenance.as_ref()
     }
 }

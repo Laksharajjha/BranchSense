@@ -10,7 +10,7 @@ and releases use semantic versioning with an explicit alpha phase.
 ### Planned
 
 - Workspace identity and Git repository discovery.
-- Semantic extraction from parsed Java syntax trees.
+- Semantic graph construction and incremental graph updates.
 
 ## [0.1.0-alpha] - 2026-08-09
 

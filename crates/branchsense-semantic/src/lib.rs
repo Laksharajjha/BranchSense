@@ -34,6 +34,17 @@
 //! may consume one fact set, resolve references, and produce graph deltas
 //! without introducing graph concerns into this vocabulary crate.
 //!
+//! Fact sets may carry [`FactProvenance`]. [`FactDelta`] compares the facts
+//! owned by one document and reports additions, removals, and stable-identity
+//! updates. [`FactSnapshot`] groups document fact sets under a repository,
+//! workspace, and revision identity without becoming a graph or persistence
+//! layer. These contracts let a future store replace one document atomically
+//! while keeping readers on immutable snapshots.
+//!
+//! [`ResolutionState`] makes unresolved, ambiguous, external, and invalid
+//! references distinct from resolved symbols. Consumers must not treat an
+//! unresolved reference as a graph edge to a known symbol.
+//!
 //! # Example
 //!
 //! ```
@@ -60,6 +71,8 @@
 mod error;
 mod facts;
 mod ids;
+mod lifecycle;
+mod provenance;
 mod values;
 
 pub use error::{Result, SemanticError};
@@ -69,9 +82,14 @@ pub use facts::{
     SymbolDefinition, TypeRelation, TypeRelationFact,
 };
 pub use ids::FactId;
+pub use lifecycle::{DocumentFactSet, FactDelta, FactSnapshot, FactUpdate};
+pub use provenance::{
+    ConfigurationFingerprint, ContentHash, FactProvenance, ProducerIdentity, SnapshotIdentity,
+};
 pub use values::{
-    Annotation, AnnotationArgument, AnnotationValue, DependencyKind, Documentation, ReferenceKind,
-    SemanticFactSet, SymbolKind, SymbolReference, TypeReference,
+    Annotation, AnnotationArgument, AnnotationValue, DependencyKind, Documentation,
+    ExternalSymbolId, ReferenceKind, ResolutionState, SemanticFactSet, SymbolKind, SymbolReference,
+    TypeReference,
 };
 
 #[cfg(test)]

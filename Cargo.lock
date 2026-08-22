@@ -149,6 +149,7 @@ name = "branchsense-semantic"
 version = "0.1.0-alpha"
 dependencies = [
  "branchsense-core",
+ "criterion",
  "serde",
  "serde_json",
  "thiserror",
