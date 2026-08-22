@@ -158,9 +158,13 @@ impl SemanticIndexSnapshot {
 /// Stage that produced an index diagnostic.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub enum IndexStage {
+    /// Reading source bytes failed.
     Read,
+    /// Parsing source failed before a tree was produced.
     Parse,
+    /// Semantic extraction failed before facts were produced.
     Extract,
+    /// Graph snapshot publication failed.
     Graph,
 }
 
