@@ -10,7 +10,14 @@ and releases use semantic versioning with an explicit alpha phase.
 ### Planned
 
 - Workspace identity and Git repository discovery.
-- Semantic graph construction and incremental graph updates.
+- Semantic query engine and graph impact queries.
+
+### Added
+
+- First immutable semantic graph crate consuming `SemanticFactSet` and `FactDelta`.
+- Typed graph nodes and edges preserving unresolved, ambiguous, and external references.
+- Atomic document replacement and deletion APIs with deterministic indexes.
+- `branchsense inspect --graph` for graph statistics.
 
 ## [0.1.0-alpha] - 2026-08-09
 

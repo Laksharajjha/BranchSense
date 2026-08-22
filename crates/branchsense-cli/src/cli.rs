@@ -5,8 +5,9 @@ use std::{
     time::Instant,
 };
 
-use branchsense_core::{BuildInfo, Language};
+use branchsense_core::{BuildInfo, DocumentId, Language, RevisionId};
 use branchsense_extractor_java::JavaExtractor;
+use branchsense_graph::{EdgeKind, SemanticGraph};
 use branchsense_java::{JavaAdapter, JavaSyntaxTree};
 use branchsense_language::{AdapterConfig, AdapterRegistry};
 use branchsense_semantic::SemanticFact;
@@ -37,6 +38,9 @@ enum Command {
     Inspect {
         /// Java source file to inspect.
         path: PathBuf,
+        /// Also construct and display the semantic graph.
+        #[arg(long)]
+        graph: bool,
     },
 }
 
@@ -50,7 +54,7 @@ impl Cli {
                 println!("{build_info}");
             }
             Command::Parse { path } => parse_java(&path)?,
-            Command::Inspect { path } => inspect_java(&path)?,
+            Command::Inspect { path, graph } => inspect_java(&path, graph)?,
         }
         Ok(())
     }
@@ -94,7 +98,7 @@ fn parse_java(path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn inspect_java(path: &Path) -> Result<()> {
+fn inspect_java(path: &Path, show_graph: bool) -> Result<()> {
     let registry = AdapterRegistry::default();
     registry
         .register(JavaAdapter::default())
@@ -146,6 +150,65 @@ fn inspect_java(path: &Path) -> Result<()> {
     println!("Extraction Time: {elapsed:?}");
     println!("Syntax Diagnostics: {}", parsed.diagnostics().len());
     println!("Extraction Diagnostics: {}", result.diagnostics().len());
+    if show_graph {
+        let document_id = DocumentId::new(path.display().to_string())
+            .map_err(|error| CliError::Command(error.to_string()))?;
+        let graph = SemanticGraph::from_document_facts(
+            document_id,
+            RevisionId::new(format!("document:{}", parsed.document().version().value()))
+                .map_err(|error| CliError::Command(error.to_string()))?,
+            result.facts().clone(),
+        )
+        .map_err(|error| CliError::Command(error.to_string()))?;
+        print_graph(&graph);
+    }
     debug!(path = %path.display(), elapsed = ?elapsed, facts = result.facts().len(), "inspected Java semantic facts");
     Ok(())
+}
+
+fn print_graph(graph: &SemanticGraph) {
+    let statistics = graph.statistics();
+    let mut types = 0;
+    let mut methods = 0;
+    let mut fields = 0;
+    for node in graph.nodes() {
+        match node.symbol_kind() {
+            Some(
+                branchsense_semantic::SymbolKind::Type
+                | branchsense_semantic::SymbolKind::Interface
+                | branchsense_semantic::SymbolKind::Enum,
+            ) => types += 1,
+            Some(
+                branchsense_semantic::SymbolKind::Method
+                | branchsense_semantic::SymbolKind::Constructor,
+            ) => methods += 1,
+            Some(branchsense_semantic::SymbolKind::Field) => fields += 1,
+            _ => {}
+        }
+    }
+    let edge_count = |kind| graph.edges().filter(|edge| edge.kind() == kind).count();
+    println!();
+    println!("Semantic Graph");
+    println!();
+    println!("## Nodes");
+    println!();
+    println!("Documents: {}", statistics.documents());
+    println!("Types: {types}");
+    println!("Methods: {methods}");
+    println!("Fields: {fields}");
+    println!("External: {}", statistics.external());
+    println!("Unresolved: {}", statistics.unresolved());
+    println!();
+    println!("## Edges");
+    println!();
+    println!("Defines: {}", edge_count(EdgeKind::Defines));
+    println!("Contains: {}", edge_count(EdgeKind::Contains));
+    println!("Calls: {}", edge_count(EdgeKind::Calls));
+    println!("References: {}", edge_count(EdgeKind::References));
+    println!("Imports: {}", edge_count(EdgeKind::Imports));
+    println!("Extends: {}", edge_count(EdgeKind::Extends));
+    println!("Implements: {}", edge_count(EdgeKind::Implements));
+    println!("DependsOn: {}", edge_count(EdgeKind::DependsOn));
+    println!("Total Nodes: {}", statistics.nodes());
+    println!("Total Edges: {}", statistics.edges());
 }

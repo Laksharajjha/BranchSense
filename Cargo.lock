@@ -79,6 +79,7 @@ version = "0.1.0-alpha"
 dependencies = [
  "branchsense-core",
  "branchsense-extractor-java",
+ "branchsense-graph",
  "branchsense-java",
  "branchsense-language",
  "branchsense-parser",
@@ -102,6 +103,20 @@ name = "branchsense-extractor-java"
 version = "0.1.0-alpha"
 dependencies = [
  "branchsense-core",
+ "branchsense-java",
+ "branchsense-parser",
+ "branchsense-semantic",
+ "criterion",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "branchsense-graph"
+version = "0.1.0-alpha"
+dependencies = [
+ "branchsense-core",
+ "branchsense-extractor-java",
  "branchsense-java",
  "branchsense-parser",
  "branchsense-semantic",
