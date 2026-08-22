@@ -20,6 +20,9 @@ serde.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
+branchsense-extractor-java = { path = "../branchsense-extractor-java" }
+branchsense-java = { path = "../branchsense-java" }
+branchsense-parser = { path = "../branchsense-parser" }
 criterion.workspace = true
 
 [[bench]]
