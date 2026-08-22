@@ -502,7 +502,7 @@ impl SemanticGraph {
         let target = match &resolution {
             ResolutionState::Resolved(symbol) => GraphNodeId::Symbol(symbol.clone()),
             ResolutionState::External(external) => {
-                let id = external.as_str().to_owned();
+                let id = external.clone();
                 let node = GraphNode::External { id: id.clone(), name: reference.name().clone() };
                 self.ensure_node(node)?;
                 GraphNodeId::External(id)

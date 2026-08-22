@@ -3,7 +3,9 @@
 use std::fmt;
 
 use branchsense_core::{DocumentId, QualifiedName, SymbolId};
-use branchsense_semantic::{FactId, FactProvenance, ResolutionState, SymbolDefinition, SymbolKind};
+use branchsense_semantic::{
+    ExternalSymbolId, FactId, FactProvenance, ResolutionState, SymbolDefinition, SymbolKind,
+};
 use serde::{Deserialize, Serialize};
 
 /// Stable identity of a graph node.
@@ -14,7 +16,7 @@ pub enum GraphNodeId {
     /// A declared semantic symbol.
     Symbol(SymbolId),
     /// A symbol known to exist outside the indexed workspace.
-    External(String),
+    External(ExternalSymbolId),
     /// A reference whose target is not currently resolved.
     Unresolved(QualifiedName),
 }
@@ -63,7 +65,7 @@ pub enum GraphNode {
     /// A known external symbol.
     External {
         /// External identity.
-        id: String,
+        id: ExternalSymbolId,
         /// Display name retained from the reference.
         name: QualifiedName,
     },
