@@ -7,7 +7,8 @@ use branchsense_semantic::{
     FactDelta, FactId, SemanticFact, SemanticFactRecord, SemanticFactSet, SymbolDefinition,
     SymbolKind,
 };
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 
 fn records(count: usize) -> SemanticFactSet {
     let document = DocumentId::new("benchmark.java").expect("document ID");
