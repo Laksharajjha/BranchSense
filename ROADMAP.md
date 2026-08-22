@@ -44,10 +44,11 @@
 - Canonical workspace/session lifecycle
 - Configuration loading and diagnostic reporting
 
-## Milestone 7 — Semantic graph foundation
+## Milestone 7 — Semantic graph foundation ✅
 
-- Stable symbol/dependency graph schema
-- Transactional graph deltas and snapshots
+- Stable symbol/dependency graph schema ✅
+- Immutable graph snapshots and document replacement ✅
+- Deterministic node, edge, symbol, and ownership indexes ✅
 - Incremental invalidation indexes
 
 ## Milestone 8 — Query and observability surface

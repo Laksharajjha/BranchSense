@@ -10,8 +10,9 @@ It is not an AI coding assistant, editor extension, or merge tool.
 
 The project is in an early alpha. The current milestone provides the semantic
 domain model, parser and language-adapter contracts, the first Tree-sitter-backed
-Java parser, canonical semantic facts, and Java semantic extraction. Git
-inspection, graph maintenance, and conflict prediction are not implemented yet.
+Java parser, canonical semantic facts, Java semantic extraction, and the first
+semantic graph snapshot implementation. Git inspection, query services, and
+conflict prediction are not implemented yet.
 
 ## Quick start
 
@@ -34,6 +35,7 @@ cargo run --bin branchsense -- inspect crates/branchsense-extractor-java/tests/f
 | `branchsense-java` | Tree-sitter-backed Java parser, recovery diagnostics, incremental parsing, and tree statistics. |
 | `branchsense-semantic` | Language-independent semantic facts, symbol definitions, references, relationships, and fact batches. |
 | `branchsense-extractor-java` | Java syntax-to-semantic-fact extraction with recovery diagnostics and benchmarks. |
+| `branchsense-graph` | Immutable semantic graph snapshots, typed relationships, indexes, and document updates. |
 | `branchsense` | The CLI binary, argument parsing, command dispatch, and process logging. |
 
 The semantic model is organized into explicit domain boundaries:
@@ -49,8 +51,8 @@ crates/branchsense-core/src/
 └── value_objects/   immutable positions, ranges, names, visibility, and language values
 ```
 
-This milestone intentionally stops before graph maintenance. It does not
-inspect Git, expose networking, integrate an editor, or predict conflicts.
+This milestone intentionally stops before query and Git intelligence. It does
+not expose networking, integrate an editor, or predict conflicts.
 
 The root manifest centrally pins the selected ecosystem: `tree-sitter` for
 incremental parsing, `gix` (gitoxide) for Git access, `petgraph` as the initial
@@ -78,6 +80,7 @@ command output is written to stdout.
 - [Language adapter framework](docs/language-adapter.md)
 - [Java semantic extractor](docs/java-extractor.md)
 - [Semantic state foundation](docs/semantic-state.md)
+- [Semantic graph](docs/semantic-graph.md)
 - [Roadmap](ROADMAP.md)
 - [Contributing guide](CONTRIBUTING.md)
 
