@@ -137,6 +137,13 @@ name = "branchsense-index"
 version = "0.1.0-alpha"
 dependencies = [
  "branchsense-core",
+ "branchsense-extractor-java",
+ "branchsense-graph",
+ "branchsense-java",
+ "branchsense-parser",
+ "branchsense-query",
+ "branchsense-semantic",
+ "serde",
  "tempfile",
  "thiserror",
 ]
