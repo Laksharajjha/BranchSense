@@ -1,7 +1,9 @@
 use std::{fs, path::PathBuf};
 
 use super::{DiscoveryOptions, IndexOptions, RepositoryIndex, SourceDiscovery};
+use branchsense_graph::EdgeKind;
 use branchsense_query::Query;
+use branchsense_semantic::ResolutionState;
 
 fn fixture() -> tempfile::TempDir {
     let root = tempfile::tempdir().expect("temporary root");
@@ -42,6 +44,10 @@ fn index_builds_one_graph_from_multiple_java_files() {
     assert_eq!(result.report().indexed(), 3);
     assert_eq!(result.snapshot().graph().statistics().documents(), 3);
     assert!(result.snapshot().graph().statistics().symbols() >= 6);
+    assert!(result.snapshot().graph().edges().any(|edge| {
+        edge.kind() == EdgeKind::Imports
+            && matches!(edge.resolution(), Some(ResolutionState::Resolved(_)))
+    }));
     let query = Query::new(result.snapshot().graph());
     assert_eq!(
         query
