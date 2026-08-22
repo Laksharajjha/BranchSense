@@ -1,4 +1,6 @@
-//! Validation errors for semantic values.
+//! Validation errors for semantic values and snapshots.
+
+use branchsense_core::DocumentId;
 
 use thiserror::Error;
 
@@ -10,6 +12,12 @@ pub enum SemanticError {
     EmptyValue {
         /// The kind of value that was empty.
         kind: &'static str,
+    },
+    /// A snapshot contained more than one fact set for the same document.
+    #[error("snapshot contains duplicate document {document}")]
+    DuplicateDocument {
+        /// The duplicated document identity.
+        document: DocumentId,
     },
 }
 

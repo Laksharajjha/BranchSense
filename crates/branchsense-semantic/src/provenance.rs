@@ -1,0 +1,247 @@
+//! Provenance and identity metadata attached to semantic facts.
+
+use branchsense_core::{DocumentId, ProjectId, RepositoryId, RevisionId, WorkspaceId};
+use serde::{Deserialize, Serialize};
+
+use crate::{Result, SemanticError};
+
+/// A content-addressed source hash supplied by the host.
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct ContentHash(String);
+
+impl ContentHash {
+    /// Creates a content hash. The value should include its algorithm, for
+    /// example `sha256:<hex>`, so consumers never need to infer it.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SemanticError::EmptyValue`] for an empty value.
+    pub fn new(value: impl Into<String>) -> Result<Self> {
+        let value = value.into();
+        if value.trim().is_empty() {
+            return Err(SemanticError::EmptyValue { kind: "content hash" });
+        }
+        Ok(Self(value))
+    }
+
+    /// Returns the serialized hash value.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+/// Identity of the adapter or extractor that produced facts.
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct ProducerIdentity {
+    name: String,
+    version: String,
+}
+
+impl ProducerIdentity {
+    /// Creates producer identity from a stable name and version.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SemanticError::EmptyValue`] when either value is empty.
+    pub fn new(name: impl Into<String>, version: impl Into<String>) -> Result<Self> {
+        let name = name.into();
+        let version = version.into();
+        if name.trim().is_empty() {
+            return Err(SemanticError::EmptyValue { kind: "producer name" });
+        }
+        if version.trim().is_empty() {
+            return Err(SemanticError::EmptyValue { kind: "producer version" });
+        }
+        Ok(Self { name, version })
+    }
+
+    /// Returns the producer name.
+    #[must_use]
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Returns the producer version.
+    #[must_use]
+    pub fn version(&self) -> &str {
+        &self.version
+    }
+}
+
+/// Fingerprint of the extraction configuration used for a fact set.
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct ConfigurationFingerprint(String);
+
+impl ConfigurationFingerprint {
+    /// Creates a configuration fingerprint supplied by the host.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SemanticError::EmptyValue`] for an empty value.
+    pub fn new(value: impl Into<String>) -> Result<Self> {
+        let value = value.into();
+        if value.trim().is_empty() {
+            return Err(SemanticError::EmptyValue { kind: "configuration fingerprint" });
+        }
+        Ok(Self(value))
+    }
+
+    /// Returns the serialized fingerprint.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+/// Provenance for all facts extracted from one source document.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct FactProvenance {
+    repository_id: RepositoryId,
+    workspace_id: WorkspaceId,
+    project_id: Option<ProjectId>,
+    document_id: DocumentId,
+    revision_id: RevisionId,
+    content_hash: ContentHash,
+    producer: ProducerIdentity,
+    configuration: Option<ConfigurationFingerprint>,
+}
+
+impl FactProvenance {
+    /// Creates the minimum provenance required to identify a fact batch.
+    #[must_use]
+    pub fn new(
+        repository_id: RepositoryId,
+        workspace_id: WorkspaceId,
+        document_id: DocumentId,
+        revision_id: RevisionId,
+        content_hash: ContentHash,
+        producer: ProducerIdentity,
+    ) -> Self {
+        Self {
+            repository_id,
+            workspace_id,
+            project_id: None,
+            document_id,
+            revision_id,
+            content_hash,
+            producer,
+            configuration: None,
+        }
+    }
+
+    /// Associates the facts with a project.
+    #[must_use]
+    pub fn with_project(mut self, project_id: ProjectId) -> Self {
+        self.project_id = Some(project_id);
+        self
+    }
+
+    /// Associates the facts with an extraction configuration fingerprint.
+    #[must_use]
+    pub fn with_configuration(mut self, configuration: ConfigurationFingerprint) -> Self {
+        self.configuration = Some(configuration);
+        self
+    }
+
+    /// Returns the repository identity.
+    #[must_use]
+    pub fn repository_id(&self) -> &RepositoryId {
+        &self.repository_id
+    }
+
+    /// Returns the workspace identity.
+    #[must_use]
+    pub fn workspace_id(&self) -> &WorkspaceId {
+        &self.workspace_id
+    }
+
+    /// Returns the optional project identity.
+    #[must_use]
+    pub fn project_id(&self) -> Option<&ProjectId> {
+        self.project_id.as_ref()
+    }
+
+    /// Returns the source document identity.
+    #[must_use]
+    pub fn document_id(&self) -> &DocumentId {
+        &self.document_id
+    }
+
+    /// Returns the semantic revision identity.
+    #[must_use]
+    pub fn revision_id(&self) -> &RevisionId {
+        &self.revision_id
+    }
+
+    /// Returns the source content hash.
+    #[must_use]
+    pub fn content_hash(&self) -> &ContentHash {
+        &self.content_hash
+    }
+
+    /// Returns the producing adapter or extractor identity.
+    #[must_use]
+    pub fn producer(&self) -> &ProducerIdentity {
+        &self.producer
+    }
+
+    /// Returns the optional extraction configuration fingerprint.
+    #[must_use]
+    pub fn configuration(&self) -> Option<&ConfigurationFingerprint> {
+        self.configuration.as_ref()
+    }
+}
+
+/// Identity of an immutable collection of facts for one workspace revision.
+#[allow(clippy::struct_field_names)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct SnapshotIdentity {
+    repository_id: RepositoryId,
+    workspace_id: WorkspaceId,
+    project_id: Option<ProjectId>,
+    revision_id: RevisionId,
+}
+
+impl SnapshotIdentity {
+    /// Creates a revision-pinned snapshot identity.
+    #[must_use]
+    pub fn new(
+        repository_id: RepositoryId,
+        workspace_id: WorkspaceId,
+        revision_id: RevisionId,
+    ) -> Self {
+        Self { repository_id, workspace_id, project_id: None, revision_id }
+    }
+
+    /// Associates the snapshot with a project.
+    #[must_use]
+    pub fn with_project(mut self, project_id: ProjectId) -> Self {
+        self.project_id = Some(project_id);
+        self
+    }
+
+    /// Returns the repository identity.
+    #[must_use]
+    pub fn repository_id(&self) -> &RepositoryId {
+        &self.repository_id
+    }
+
+    /// Returns the workspace identity.
+    #[must_use]
+    pub fn workspace_id(&self) -> &WorkspaceId {
+        &self.workspace_id
+    }
+
+    /// Returns the optional project identity.
+    #[must_use]
+    pub fn project_id(&self) -> Option<&ProjectId> {
+        self.project_id.as_ref()
+    }
+
+    /// Returns the revision identity.
+    #[must_use]
+    pub fn revision_id(&self) -> &RevisionId {
+        &self.revision_id
+    }
+}
