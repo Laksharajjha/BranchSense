@@ -3,7 +3,7 @@
 use std::fmt;
 
 use branchsense_core::{DocumentId, QualifiedName, SymbolId};
-use branchsense_semantic::{FactId, FactProvenance, ResolutionState, SymbolDefinition};
+use branchsense_semantic::{FactId, FactProvenance, ResolutionState, SymbolDefinition, SymbolKind};
 use serde::{Deserialize, Serialize};
 
 /// Stable identity of a graph node.
@@ -101,6 +101,21 @@ impl GraphNode {
             Self::External { .. } | Self::Unresolved { .. } => None,
         }
     }
+
+    /// Returns the declaration for a symbol node.
+    #[must_use]
+    pub fn definition(&self) -> Option<&SymbolDefinition> {
+        match self {
+            Self::Symbol { definition, .. } => Some(definition),
+            Self::Document { .. } | Self::External { .. } | Self::Unresolved { .. } => None,
+        }
+    }
+
+    /// Returns the semantic symbol kind for a declaration node.
+    #[must_use]
+    pub fn symbol_kind(&self) -> Option<SymbolKind> {
+        self.definition().map(SymbolDefinition::kind)
+    }
 }
 
 /// Stable identity of a graph edge.
@@ -109,6 +124,11 @@ pub struct GraphEdgeId(String);
 
 impl GraphEdgeId {
     /// Creates an edge identity from a non-empty value.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`branchsense_semantic::SemanticError::EmptyValue`] for an
+    /// empty identity.
     pub fn new(value: impl Into<String>) -> branchsense_semantic::Result<Self> {
         let value = value.into();
         if value.trim().is_empty() {
