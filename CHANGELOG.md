@@ -10,10 +10,20 @@ and releases use semantic versioning with an explicit alpha phase.
 ### Planned
 
 - Workspace identity and Git repository discovery.
-- Semantic query engine and graph impact queries.
+- Graph impact queries and repository-wide query loading.
 
 ### Added
 
+- `branchsense-index` with deterministic Java source discovery, ignored
+  directory handling, repository-wide graph construction, structured
+  diagnostics, and content-based incremental reuse.
+- Exact fully qualified cross-file imports and references resolve through the
+  graph symbol index; short-name and scope-dependent references remain explicit.
+- `branchsense index <path>` and `--project` query execution over one
+  repository graph snapshot.
+- `branchsense-query` with exact symbol lookup, relationship queries, and
+  bounded deterministic traversal.
+- Semantic query CLI commands with explicit `--file` source input.
 - First immutable semantic graph crate consuming `SemanticFactSet` and `FactDelta`.
 - Typed graph nodes and edges preserving unresolved, ambiguous, and external references.
 - Atomic document replacement and deletion APIs with deterministic indexes.

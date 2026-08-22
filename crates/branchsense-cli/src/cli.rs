@@ -5,11 +5,13 @@ use std::{
     time::Instant,
 };
 
-use branchsense_core::{BuildInfo, DocumentId, Language, RevisionId};
+use branchsense_core::{BuildInfo, DocumentId, Language, QualifiedName, RevisionId};
 use branchsense_extractor_java::JavaExtractor;
 use branchsense_graph::{EdgeKind, SemanticGraph};
+use branchsense_index::{IndexOptions, RepositoryIndex};
 use branchsense_java::{JavaAdapter, JavaSyntaxTree};
 use branchsense_language::{AdapterConfig, AdapterRegistry};
+use branchsense_query::{Query, QueryNode, QueryOptions, QueryResult, RelationshipResult};
 use branchsense_semantic::SemanticFact;
 use clap::{Parser as ClapParser, Subcommand};
 use tracing::debug;
@@ -42,6 +44,66 @@ enum Command {
         #[arg(long)]
         graph: bool,
     },
+    /// Index all Java sources below a repository or project path.
+    Index {
+        /// Repository or project path to index.
+        path: PathBuf,
+    },
+    /// Query callers of a symbol in one Java source graph.
+    Callers {
+        /// Fully qualified symbol name.
+        symbol: String,
+        /// Java source file used to build the graph.
+        #[arg(long, conflicts_with = "project", required_unless_present = "project")]
+        file: Option<PathBuf>,
+        /// Repository or project path to index.
+        #[arg(long, conflicts_with = "file", required_unless_present = "file")]
+        project: Option<PathBuf>,
+    },
+    /// Query callees of a symbol in one Java source graph.
+    Callees {
+        /// Fully qualified symbol name.
+        symbol: String,
+        /// Java source file used to build the graph.
+        #[arg(long, conflicts_with = "project", required_unless_present = "project")]
+        file: Option<PathBuf>,
+        /// Repository or project path to index.
+        #[arg(long, conflicts_with = "file", required_unless_present = "file")]
+        project: Option<PathBuf>,
+    },
+    /// Query references to a symbol in one Java source graph.
+    References {
+        /// Fully qualified symbol name.
+        symbol: String,
+        /// Java source file used to build the graph.
+        #[arg(long, conflicts_with = "project", required_unless_present = "project")]
+        file: Option<PathBuf>,
+        /// Repository or project path to index.
+        #[arg(long, conflicts_with = "file", required_unless_present = "file")]
+        project: Option<PathBuf>,
+    },
+    /// Query implementations of a type in one Java source graph.
+    Implementations {
+        /// Fully qualified symbol name.
+        symbol: String,
+        /// Java source file used to build the graph.
+        #[arg(long, conflicts_with = "project", required_unless_present = "project")]
+        file: Option<PathBuf>,
+        /// Repository or project path to index.
+        #[arg(long, conflicts_with = "file", required_unless_present = "file")]
+        project: Option<PathBuf>,
+    },
+    /// Query dependencies of a symbol in one Java source graph.
+    Dependencies {
+        /// Fully qualified symbol name.
+        symbol: String,
+        /// Java source file used to build the graph.
+        #[arg(long, conflicts_with = "project", required_unless_present = "project")]
+        file: Option<PathBuf>,
+        /// Repository or project path to index.
+        #[arg(long, conflicts_with = "file", required_unless_present = "file")]
+        project: Option<PathBuf>,
+    },
 }
 
 impl Cli {
@@ -55,8 +117,178 @@ impl Cli {
             }
             Command::Parse { path } => parse_java(&path)?,
             Command::Inspect { path, graph } => inspect_java(&path, graph)?,
+            Command::Index { path } => index_repository(&path)?,
+            Command::Callers { symbol, file, project } => {
+                query_java(file.as_deref(), project.as_deref(), &symbol, QueryOperation::Callers)?;
+            }
+            Command::Callees { symbol, file, project } => {
+                query_java(file.as_deref(), project.as_deref(), &symbol, QueryOperation::Callees)?;
+            }
+            Command::References { symbol, file, project } => {
+                query_java(
+                    file.as_deref(),
+                    project.as_deref(),
+                    &symbol,
+                    QueryOperation::References,
+                )?;
+            }
+            Command::Implementations { symbol, file, project } => {
+                query_java(
+                    file.as_deref(),
+                    project.as_deref(),
+                    &symbol,
+                    QueryOperation::Implementations,
+                )?;
+            }
+            Command::Dependencies { symbol, file, project } => {
+                query_java(
+                    file.as_deref(),
+                    project.as_deref(),
+                    &symbol,
+                    QueryOperation::Dependencies,
+                )?;
+            }
         }
         Ok(())
+    }
+}
+
+#[derive(Clone, Copy)]
+enum QueryOperation {
+    Callers,
+    Callees,
+    References,
+    Implementations,
+    Dependencies,
+}
+
+fn index_repository(path: &Path) -> Result<()> {
+    let result = RepositoryIndex::new(IndexOptions::default())
+        .index(path, None)
+        .map_err(|error| CliError::Command(error.to_string()))?;
+    let report = result.report();
+    let statistics = result.snapshot().graph().statistics();
+    println!("Repository");
+    println!();
+    println!("Root: {}", result.snapshot().repository().root().display());
+    println!("Files discovered: {}", report.discovered());
+    println!("Files indexed: {}", report.indexed());
+    println!("Files unchanged: {}", report.unchanged());
+    println!("Files skipped: {}", report.skipped());
+    println!("Parse diagnostics: {}", report.parse_diagnostics());
+    println!("Extraction diagnostics: {}", report.extraction_diagnostics());
+    println!();
+    println!("Semantic Graph");
+    println!();
+    println!("Documents: {}", statistics.documents());
+    println!("Symbols: {}", statistics.symbols());
+    println!("Nodes: {}", statistics.nodes());
+    println!("Edges: {}", statistics.edges());
+    println!();
+    println!("Index duration: {:?}", report.duration());
+    for diagnostic in report.diagnostics() {
+        println!(
+            "{} [{:?}] {}",
+            diagnostic.path().display(),
+            diagnostic.stage(),
+            diagnostic.message()
+        );
+    }
+    Ok(())
+}
+
+fn query_java(
+    file: Option<&Path>,
+    project: Option<&Path>,
+    name: &str,
+    operation: QueryOperation,
+) -> Result<()> {
+    let graph = if let Some(project) = project {
+        RepositoryIndex::new(IndexOptions::default())
+            .index(project, None)
+            .map_err(|error| CliError::Command(error.to_string()))?
+            .snapshot()
+            .graph()
+            .clone()
+    } else {
+        graph_for_java(file.expect("clap requires a file or project"))?
+    };
+    let query = Query::new(&graph);
+    let qualified =
+        QualifiedName::new(name).map_err(|error| CliError::Command(error.to_string()))?;
+    let symbol = query
+        .symbol_by_qualified_name(&qualified)
+        .map_err(|error| CliError::Command(error.to_string()))?;
+    let symbol_id = symbol.id().clone();
+    let options = QueryOptions::new();
+    let results = match operation {
+        QueryOperation::Callers => query.callers(&symbol_id, options),
+        QueryOperation::Callees => query.callees(&symbol_id, options),
+        QueryOperation::References => query.references(&symbol_id, options),
+        QueryOperation::Implementations => query.implementations(&symbol_id, options),
+        QueryOperation::Dependencies => query.dependencies(&symbol_id, options),
+    }
+    .map_err(|error| CliError::Command(error.to_string()))?;
+    let title = match operation {
+        QueryOperation::Callers => "Callers of",
+        QueryOperation::Callees => "Callees of",
+        QueryOperation::References => "References to",
+        QueryOperation::Implementations => "Implementations of",
+        QueryOperation::Dependencies => "Dependencies of",
+    };
+    println!("{title} {name}");
+    print_relationships(&results);
+    Ok(())
+}
+
+fn graph_for_java(path: &Path) -> Result<SemanticGraph> {
+    let registry = AdapterRegistry::default();
+    registry
+        .register(JavaAdapter::default())
+        .map_err(|error| CliError::Command(error.to_string()))?;
+    let adapter =
+        registry.adapter(Language::Java).map_err(|error| CliError::Command(error.to_string()))?;
+    let session = adapter
+        .start(&AdapterConfig::default())
+        .map_err(|error| CliError::Command(error.to_string()))?;
+    let parsed =
+        session.parser().parse(path).map_err(|error| CliError::Command(error.to_string()))?;
+    let extracted = JavaExtractor::new()
+        .extract(parsed.document())
+        .map_err(|error| CliError::Command(error.to_string()))?;
+    let document_id = DocumentId::new(path.display().to_string())
+        .map_err(|error| CliError::Command(error.to_string()))?;
+    SemanticGraph::from_document_facts(
+        document_id,
+        RevisionId::new(format!("document:{}", parsed.document().version().value()))
+            .map_err(|error| CliError::Command(error.to_string()))?,
+        extracted.facts().clone(),
+    )
+    .map_err(|error| CliError::Command(error.to_string()))
+}
+
+fn print_relationships(results: &QueryResult<RelationshipResult>) {
+    for (index, result) in results.items().iter().enumerate() {
+        println!("\n{}. {}", index + 1, display_node(result.source()));
+        println!("   -> {} ({:?})", display_node(result.target()), result.kind());
+        if let QueryNode::Symbol(symbol) = result.source() {
+            let location = symbol.location();
+            println!("   {}:{}", location.document_id(), location.range().start().line() + 1);
+        }
+        if let Some(resolution) = result.resolution() {
+            println!("   Resolution: {resolution:?}");
+        }
+    }
+    println!("\nTotal: {}", results.len());
+}
+
+fn display_node(node: &QueryNode) -> String {
+    match node {
+        QueryNode::Symbol(symbol) => {
+            symbol.qualified_name().map_or_else(|| symbol.name().to_owned(), ToString::to_string)
+        }
+        QueryNode::External { name, .. } | QueryNode::Unresolved { name } => name.to_string(),
+        QueryNode::Document(document) => document.to_string(),
     }
 }
 

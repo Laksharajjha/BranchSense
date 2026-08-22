@@ -22,6 +22,7 @@ pub struct SemanticGraph {
     nodes: BTreeMap<GraphNodeId, GraphNode>,
     edges: BTreeMap<GraphEdgeId, GraphEdge>,
     symbol_index: BTreeMap<SymbolId, GraphNodeId>,
+    qualified_index: BTreeMap<branchsense_core::QualifiedName, SymbolId>,
     document_nodes: BTreeMap<DocumentId, BTreeSet<GraphNodeId>>,
     outgoing: BTreeMap<GraphNodeId, BTreeSet<GraphEdgeId>>,
     incoming: BTreeMap<GraphNodeId, BTreeSet<GraphEdgeId>>,
@@ -325,6 +326,9 @@ impl SemanticGraph {
         }
         if let GraphNodeId::Symbol(symbol) = node_id {
             self.symbol_index.insert(symbol, GraphNodeId::Symbol(definition.id().clone()));
+            if let Some(qualified_name) = definition.qualified_name() {
+                self.qualified_index.insert(qualified_name.clone(), definition.id().clone());
+            }
         }
         Ok(())
     }
@@ -443,13 +447,18 @@ impl SemanticGraph {
         provenance: Option<&FactProvenance>,
     ) -> Result<()> {
         let target = branchsense_core::QualifiedName::new(fact.target().as_str())?;
-        let target_id = self.ensure_unresolved(target.clone())?;
+        let (target_id, resolution) =
+            if let Some(symbol) = self.qualified_index.get(&target).cloned() {
+                (GraphNodeId::Symbol(symbol.clone()), ResolutionState::Resolved(symbol))
+            } else {
+                (self.ensure_unresolved(target.clone())?, ResolutionState::Unresolved)
+            };
         self.add_edge(
             record,
             GraphNodeId::Document(fact.document().clone()),
             target_id,
             EdgeKind::Imports,
-            Some(ResolutionState::Unresolved),
+            Some(resolution),
             provenance,
         )
     }
@@ -498,7 +507,15 @@ impl SemanticGraph {
     where
         R: ReferenceTarget,
     {
-        let resolution = reference.resolution().clone();
+        let resolution = match reference.resolution() {
+            ResolutionState::Unresolved => self
+                .qualified_index
+                .get(reference.name())
+                .map_or(ResolutionState::Unresolved, |symbol| {
+                    ResolutionState::Resolved(symbol.clone())
+                }),
+            resolution => resolution.clone(),
+        };
         let target = match &resolution {
             ResolutionState::Resolved(symbol) => GraphNodeId::Symbol(symbol.clone()),
             ResolutionState::External(external) => {

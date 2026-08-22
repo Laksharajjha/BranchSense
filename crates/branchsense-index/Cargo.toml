@@ -1,6 +1,6 @@
 [package]
-name = "branchsense"
-description = "Command-line interface for the BranchSense semantic intelligence engine."
+name = "branchsense-index"
+description = "Repository-wide semantic indexing for BranchSense"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -13,24 +13,24 @@ readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
-[[bin]]
-name = "branchsense"
-path = "src/main.rs"
-
 [dependencies]
 branchsense-core = { path = "../branchsense-core" }
 branchsense-extractor-java = { path = "../branchsense-extractor-java" }
 branchsense-graph = { path = "../branchsense-graph" }
-branchsense-index = { path = "../branchsense-index" }
 branchsense-java = { path = "../branchsense-java" }
-branchsense-language = { path = "../branchsense-language" }
 branchsense-parser = { path = "../branchsense-parser" }
-branchsense-query = { path = "../branchsense-query" }
 branchsense-semantic = { path = "../branchsense-semantic" }
-clap.workspace = true
+serde.workspace = true
 thiserror.workspace = true
-tracing.workspace = true
-tracing-subscriber.workspace = true
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+branchsense-query = { path = "../branchsense-query" }
+criterion.workspace = true
+tempfile.workspace = true
+
+[[bench]]
+name = "repository_index"
+harness = false
