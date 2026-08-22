@@ -45,6 +45,7 @@ macro_rules! define_id {
 }
 
 define_id!(WorkspaceId, "workspace identifier");
+define_id!(RepositoryId, "repository identifier");
 define_id!(DocumentId, "document identifier");
 define_id!(RevisionId, "revision identifier");
 define_id!(ProjectId, "project identifier");
