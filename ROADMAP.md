@@ -32,6 +32,12 @@
 - Inheritance, interface implementation, containment, and call facts
 - Partial extraction with structured malformed-source diagnostics
 
+## Milestone 5.5 — Semantic state foundation
+
+- Canonical fact provenance and repository/workspace/revision identity
+- Document-scoped fact deltas and immutable fact snapshots
+- Explicit unresolved, ambiguous, external, and invalid reference states
+
 ## Milestone 6 — Workspace identity and Git discovery
 
 - Repository discovery through `gix`
