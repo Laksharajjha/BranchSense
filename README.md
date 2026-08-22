@@ -11,8 +11,9 @@ It is not an AI coding assistant, editor extension, or merge tool.
 The project is in an early alpha. The current milestone provides the semantic
 domain model, parser and language-adapter contracts, the first Tree-sitter-backed
 Java parser, canonical semantic facts, Java semantic extraction, and the first
-semantic graph snapshot implementation. Git inspection, query services, and
-conflict prediction are not implemented yet.
+semantic graph snapshots, repository indexing, semantic queries, and
+deterministic snapshot diffing. Git inspection and conflict prediction remain
+future work.
 
 ## Quick start
 
@@ -38,6 +39,7 @@ cargo run --bin branchsense -- inspect crates/branchsense-extractor-java/tests/f
 | `branchsense-graph` | Immutable semantic graph snapshots, typed relationships, indexes, and document updates. |
 | `branchsense-query` | Read-only typed semantic queries over graph snapshots. |
 | `branchsense-index` | Deterministic Java discovery and repository-wide graph indexing. |
+| `branchsense-diff` | Deterministic comparison of semantic index snapshots. |
 | `branchsense` | The CLI binary, argument parsing, command dispatch, and process logging. |
 
 The semantic model is organized into explicit domain boundaries:
@@ -55,7 +57,8 @@ crates/branchsense-core/src/
 
 The repository indexing milestone adds deterministic multi-file Java
 discovery, coherent graph snapshots, incremental document reuse, and project
-queries. Git intelligence, conflict prediction, and AI remain future work.
+queries. The semantic-diff milestone compares those snapshots without Git. Git
+intelligence, conflict prediction, and AI remain future work.
 
 The root manifest centrally pins the selected ecosystem: `tree-sitter` for
 incremental parsing, `gix` (gitoxide) for Git access, `petgraph` as the initial
@@ -86,6 +89,7 @@ command output is written to stdout.
 - [Semantic graph](docs/semantic-graph.md)
 - [Semantic queries](docs/semantic-queries.md)
 - [Repository indexing](docs/repository-indexing.md)
+- [Semantic diff](docs/semantic-diff.md)
 - [Roadmap](ROADMAP.md)
 - [Contributing guide](CONTRIBUTING.md)
 

@@ -107,6 +107,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "branchsense-diff"
+version = "0.1.0-alpha"
+dependencies = [
+ "branchsense-core",
+ "branchsense-index",
+ "branchsense-semantic",
+ "criterion",
+ "serde",
+ "tempfile",
+]
+
+[[package]]
 name = "branchsense-extractor-java"
 version = "0.1.0-alpha"
 dependencies = [

@@ -58,7 +58,13 @@
 - Deterministic node, edge, symbol, and ownership indexes ✅
 - Incremental invalidation indexes
 
-## Milestone 9 — Query and observability surface
+## Milestone 9 — Semantic change analysis ✅
+
+- Deterministic document, fact, symbol, and relationship diffs ✅
+- Conservative callable signature-change classification ✅
+- Immutable snapshot comparison with stable ordering and statistics ✅
+
+## Milestone 10 — Query and observability surface
 
 - Versioned local query protocol
 - Cross-file Java scope and classpath resolution
