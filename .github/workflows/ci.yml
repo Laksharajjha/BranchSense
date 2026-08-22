@@ -51,5 +51,8 @@ jobs:
       - name: Compile semantic query benchmark
         run: cargo bench -p branchsense-query --bench semantic_queries --no-run
 
+      - name: Compile repository indexing benchmark
+        run: cargo bench -p branchsense-index --bench repository_index --no-run
+
       - name: Build release binary
         run: cargo build --release --bin branchsense
