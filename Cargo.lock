@@ -160,6 +160,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "branchsense-query"
+version = "0.1.0-alpha"
+dependencies = [
+ "branchsense-core",
+ "branchsense-graph",
+ "branchsense-semantic",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "branchsense-semantic"
 version = "0.1.0-alpha"
 dependencies = [
