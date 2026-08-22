@@ -26,4 +26,9 @@ workspace = true
 branchsense-extractor-java = { path = "../branchsense-extractor-java" }
 branchsense-java = { path = "../branchsense-java" }
 branchsense-parser = { path = "../branchsense-parser" }
+criterion.workspace = true
 serde_json.workspace = true
+
+[[bench]]
+name = "semantic_queries"
+harness = false
