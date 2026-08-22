@@ -86,6 +86,7 @@ dependencies = [
  "branchsense-core",
  "branchsense-extractor-java",
  "branchsense-graph",
+ "branchsense-index",
  "branchsense-java",
  "branchsense-language",
  "branchsense-parser",
