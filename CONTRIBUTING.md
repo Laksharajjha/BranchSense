@@ -14,7 +14,20 @@ behavior.
    cargo fmt --all -- --check
    cargo clippy --workspace --all-targets -- -D warnings
    cargo test --workspace
+   RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
+   cargo build --workspace --release
+   cargo bench -p branchsense-java --bench java_parse --no-run
+   cargo bench -p branchsense-extractor-java --bench java_extract --no-run
+   cargo bench -p branchsense-graph --bench graph_repository --no-run
+   cargo bench -p branchsense-query --bench semantic_queries --no-run
+   cargo bench -p branchsense-index --bench repository_index --no-run
    ```
+
+BranchSense targets Rust `1.85.0` or newer. Pull requests also run an MSRV
+check, a `cargo-audit` vulnerability scan, cargo-deny advisory/license/source
+policy checks, and GitHub dependency review. These checks require no local
+secrets; install `cargo-audit` and `cargo-deny` locally if you want to run the
+security checks before opening a pull request.
 
 4. Explain the user-visible behavior, architectural impact, and validation in
    the pull request description.
