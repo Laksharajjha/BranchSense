@@ -23,4 +23,7 @@ thiserror.workspace = true
 workspace = true
 
 [dev-dependencies]
+branchsense-extractor-java = { path = "../branchsense-extractor-java" }
+branchsense-java = { path = "../branchsense-java" }
+branchsense-parser = { path = "../branchsense-parser" }
 serde_json.workspace = true

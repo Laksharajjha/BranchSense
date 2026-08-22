@@ -164,7 +164,10 @@ name = "branchsense-query"
 version = "0.1.0-alpha"
 dependencies = [
  "branchsense-core",
+ "branchsense-extractor-java",
  "branchsense-graph",
+ "branchsense-java",
+ "branchsense-parser",
  "branchsense-semantic",
  "serde_json",
  "thiserror",
