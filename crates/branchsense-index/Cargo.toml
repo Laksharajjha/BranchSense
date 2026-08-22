@@ -28,4 +28,9 @@ workspace = true
 
 [dev-dependencies]
 branchsense-query = { path = "../branchsense-query" }
+criterion.workspace = true
 tempfile.workspace = true
+
+[[bench]]
+name = "repository_index"
+harness = false
