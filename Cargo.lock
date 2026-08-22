@@ -170,6 +170,7 @@ dependencies = [
  "branchsense-java",
  "branchsense-parser",
  "branchsense-semantic",
+ "criterion",
  "serde_json",
  "thiserror",
 ]
