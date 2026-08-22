@@ -38,22 +38,30 @@
 - Document-scoped fact deltas and immutable fact snapshots
 - Explicit unresolved, ambiguous, external, and invalid reference states
 
-## Milestone 6 — Workspace identity and Git discovery
+## Milestone 6 — Repository semantic indexing ✅
+
+- Deterministic Java source discovery with configurable ignored directories ✅
+- Multi-file parser, extractor, and semantic graph indexing ✅
+- Content-based unchanged reuse and document replacement/deletion ✅
+- Atomic repository snapshot publication and structured diagnostics ✅
+
+## Milestone 7 — Workspace identity and Git discovery
 
 - Repository discovery through `gix`
 - Canonical workspace/session lifecycle
 - Configuration loading and diagnostic reporting
 
-## Milestone 7 — Semantic graph foundation ✅
+## Milestone 8 — Semantic graph foundation ✅
 
 - Stable symbol/dependency graph schema ✅
 - Immutable graph snapshots and document replacement ✅
 - Deterministic node, edge, symbol, and ownership indexes ✅
 - Incremental invalidation indexes
 
-## Milestone 8 — Query and observability surface
+## Milestone 9 — Query and observability surface
 
 - Versioned local query protocol
+- Cross-file Java scope and classpath resolution
 - CLI graph inspection and diagnostic bundles
 - Performance benchmarks for warm incremental updates
 

@@ -14,6 +14,11 @@ and releases use semantic versioning with an explicit alpha phase.
 
 ### Added
 
+- `branchsense-index` with deterministic Java source discovery, ignored
+  directory handling, repository-wide graph construction, structured
+  diagnostics, and content-based incremental reuse.
+- `branchsense index <path>` and `--project` query execution over one
+  repository graph snapshot.
 - `branchsense-query` with exact symbol lookup, relationship queries, and
   bounded deterministic traversal.
 - Semantic query CLI commands with explicit `--file` source input.

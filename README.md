@@ -37,6 +37,7 @@ cargo run --bin branchsense -- inspect crates/branchsense-extractor-java/tests/f
 | `branchsense-extractor-java` | Java syntax-to-semantic-fact extraction with recovery diagnostics and benchmarks. |
 | `branchsense-graph` | Immutable semantic graph snapshots, typed relationships, indexes, and document updates. |
 | `branchsense-query` | Read-only typed semantic queries over graph snapshots. |
+| `branchsense-index` | Deterministic Java discovery and repository-wide graph indexing. |
 | `branchsense` | The CLI binary, argument parsing, command dispatch, and process logging. |
 
 The semantic model is organized into explicit domain boundaries:
@@ -52,9 +53,9 @@ crates/branchsense-core/src/
 └── value_objects/   immutable positions, ranges, names, visibility, and language values
 ```
 
-The query milestone adds typed read-only lookups and relationship traversal
-over graph snapshots. Repository-wide loading, Git intelligence, conflict
-prediction, and AI remain future work.
+The repository indexing milestone adds deterministic multi-file Java
+discovery, coherent graph snapshots, incremental document reuse, and project
+queries. Git intelligence, conflict prediction, and AI remain future work.
 
 The root manifest centrally pins the selected ecosystem: `tree-sitter` for
 incremental parsing, `gix` (gitoxide) for Git access, `petgraph` as the initial
@@ -84,6 +85,7 @@ command output is written to stdout.
 - [Semantic state foundation](docs/semantic-state.md)
 - [Semantic graph](docs/semantic-graph.md)
 - [Semantic queries](docs/semantic-queries.md)
+- [Repository indexing](docs/repository-indexing.md)
 - [Roadmap](ROADMAP.md)
 - [Contributing guide](CONTRIBUTING.md)
 
