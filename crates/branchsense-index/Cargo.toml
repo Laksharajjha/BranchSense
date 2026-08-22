@@ -15,10 +15,17 @@ categories.workspace = true
 
 [dependencies]
 branchsense-core = { path = "../branchsense-core" }
+branchsense-extractor-java = { path = "../branchsense-extractor-java" }
+branchsense-graph = { path = "../branchsense-graph" }
+branchsense-java = { path = "../branchsense-java" }
+branchsense-parser = { path = "../branchsense-parser" }
+branchsense-semantic = { path = "../branchsense-semantic" }
+serde.workspace = true
 thiserror.workspace = true
 
 [lints]
 workspace = true
 
 [dev-dependencies]
+branchsense-query = { path = "../branchsense-query" }
 tempfile.workspace = true

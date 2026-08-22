@@ -8,9 +8,14 @@
 
 mod discovery;
 mod error;
+mod index;
 
 pub use discovery::{DiscoveredFile, DiscoveryOptions, DiscoveryResult, SourceDiscovery};
 pub use error::{DiscoveryError, Result};
+pub use index::{
+    IndexDiagnostic, IndexError, IndexOptions, IndexReport, IndexResult, IndexedDocument,
+    RepositoryIdentity, RepositoryIndex, SemanticIndexSnapshot,
+};
 
 #[cfg(test)]
 mod tests;
