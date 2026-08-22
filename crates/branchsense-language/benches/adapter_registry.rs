@@ -5,7 +5,8 @@ use branchsense_language::{
     ADAPTER_API_VERSION, AdapterConfig, AdapterError, AdapterMetadata, AdapterRegistry,
     AdapterSession, Capabilities, LanguageAdapter, Version, VersionRange,
 };
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 use std::sync::Arc;
 
 struct BenchAdapter {

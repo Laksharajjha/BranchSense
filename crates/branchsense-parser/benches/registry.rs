@@ -4,7 +4,8 @@ use std::sync::Arc;
 
 use branchsense_core::Language;
 use branchsense_parser::{Parser, ParserConfiguration, ParserRegistry};
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 
 #[derive(Debug)]
 struct RegistryParser;

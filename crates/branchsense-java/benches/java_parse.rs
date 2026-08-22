@@ -4,7 +4,8 @@ use std::fmt::Write;
 
 use branchsense_java::JavaParser;
 use branchsense_parser::{DocumentVersion, ParseInput, Parser, ParserConfiguration};
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, criterion_group, criterion_main};
+use std::hint::black_box;
 
 fn large_source() -> String {
     let mut source = String::from("public class LargeFixture {\n");
