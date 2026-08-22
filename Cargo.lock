@@ -111,6 +111,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "branchsense-graph"
+version = "0.1.0-alpha"
+dependencies = [
+ "branchsense-core",
+ "branchsense-semantic",
+ "criterion",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "branchsense-java"
 version = "0.1.0-alpha"
 dependencies = [
