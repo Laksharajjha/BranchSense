@@ -14,6 +14,11 @@ and releases use semantic versioning with an explicit alpha phase.
 
 ### Added
 
+- `branchsense-impact` for bounded, deterministic semantic impact analysis
+  with structured causal explanations, direct and transitive caller traversal,
+  and truncation statistics.
+- `branchsense impact --repo --before --after` for Git-backed impact inspection.
+
 - `branchsense-diff` for deterministic document, fact, symbol, and relationship
   comparison between immutable semantic index snapshots.
 - Structured callable signature-change reasons, including parameter and return
