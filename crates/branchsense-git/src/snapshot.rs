@@ -48,7 +48,7 @@ impl GitSemanticSnapshot {
     }
 }
 
-/// Indexes immutable Git trees into BranchSense semantic snapshots.
+/// Indexes immutable Git trees into `BranchSense` semantic snapshots.
 #[derive(Clone, Debug, Default)]
 pub struct GitSnapshotIndexer {
     options: IndexOptions,
@@ -62,6 +62,11 @@ impl GitSnapshotIndexer {
     }
 
     /// Indexes a commit tree without checkout or working-tree mutation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when source loading, identity construction, or semantic
+    /// indexing fails.
     pub fn index_revision(
         &self,
         repository: &GitRepository,

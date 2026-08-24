@@ -1,4 +1,4 @@
-//! Read-only Git repository primitives for BranchSense.
+//! Read-only Git repository primitives for `BranchSense`.
 //!
 //! This crate translates gitoxide values into BranchSense-owned domain types.
 //! No public API exposes `gix` implementation types, and no operation mutates

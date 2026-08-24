@@ -17,6 +17,11 @@ impl GitCommitId {
     }
 
     /// Creates an object identifier from a non-empty hexadecimal string.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when `value` is empty or contains non-hexadecimal
+    /// characters.
     pub fn new(value: impl Into<String>) -> Result<Self> {
         let value = value.into();
         if value.is_empty() || !value.chars().all(|character| character.is_ascii_hexdigit()) {
@@ -101,7 +106,7 @@ pub struct GitRevision {
 }
 
 impl GitRevision {
-    pub(crate) fn from_commit(commit: gix::Commit<'_>) -> Result<Self> {
+    pub(crate) fn from_commit(commit: &gix::Commit<'_>) -> Result<Self> {
         let id = GitCommitId::from_gix(commit.id);
         let tree_id = GitCommitId::from_gix(
             commit
@@ -125,7 +130,7 @@ impl GitRevision {
         Ok(Self { id: revision_id, commit_id: id, tree_id, parents, author, committer, message })
     }
 
-    /// Returns the BranchSense revision identity.
+    /// Returns the `BranchSense` revision identity.
     #[must_use]
     pub fn id(&self) -> &RevisionId {
         &self.id
