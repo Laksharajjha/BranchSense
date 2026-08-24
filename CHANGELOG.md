@@ -9,8 +9,8 @@ and releases use semantic versioning with an explicit alpha phase.
 
 ### Planned
 
-- Workspace identity and Git repository discovery.
-- Graph impact queries and repository-wide query loading.
+- Persistent semantic snapshots and richer Git provenance.
+- Branch impact analysis and semantic overlap candidates.
 
 ### Added
 
