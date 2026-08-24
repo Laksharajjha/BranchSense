@@ -32,7 +32,7 @@
 - Inheritance, interface implementation, containment, and call facts
 - Partial extraction with structured malformed-source diagnostics
 
-## Milestone 5.5 — Semantic state foundation
+## Milestone 5.5 — Semantic state foundation ✅
 
 - Canonical fact provenance and repository/workspace/revision identity
 - Document-scoped fact deltas and immutable fact snapshots
@@ -65,25 +65,28 @@
 - Conservative callable signature-change classification ✅
 - Immutable snapshot comparison with stable ordering and statistics ✅
 
-## Milestone 10 — Query and observability surface
+## Milestone 10 — Query and observability surface 🚧
 
 - Versioned local query protocol
 - Cross-file Java scope and classpath resolution
 - CLI graph inspection and diagnostic bundles
 - Performance benchmarks for warm incremental updates
 
-## Milestone 11 — Semantic impact analysis 🚧
+## Milestone 11 — Semantic impact analysis ✅
 
 - Deterministic impact sets derived from semantic diffs
 - Bounded direct and transitive caller analysis
 - Structured causal explanations and truncation reporting
 - Git-backed `branchsense impact` inspection
 
+## Next — Branch impact analysis
+
+- Compare the impact sets of two Git branches.
+- Produce deterministic semantic overlap candidates.
+
 ## Future milestones
 
 - Git-backed repository and revision infrastructure is implemented locally;
   persistence and richer Git provenance remain future work.
-- Branch impact analysis and semantic overlap candidates
-
 Editor clients, collaboration replication, and BCS-C consumers are deferred
 until the local semantic engine is proven correct, incremental, and observable.
