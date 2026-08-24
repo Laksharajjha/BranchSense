@@ -107,7 +107,8 @@ pub struct GitRepository {
 impl GitRepository {
     /// Discovers a repository from a path without modifying it.
     pub fn discover(path: impl AsRef<Path>) -> Result<Self> {
-        let repository = gix::discover(path).map_err(GitError::Discovery)?;
+        let repository =
+            gix::discover(path).map_err(|error| GitError::Discovery(error.to_string()))?;
         let identity = RepositoryIdentity::from_repository(&repository)?;
         Ok(Self { repository: Arc::new(repository), identity })
     }
@@ -119,17 +120,18 @@ impl GitRepository {
     }
     /// Resolves `HEAD` to a commit.
     pub fn head(&self) -> Result<GitRevision> {
-        self.revision_from_id(self.repository.head_id()?.detach())
+        let id = self.repository.head_id().map_err(GitError::operation)?;
+        self.revision_from_id(id.detach())
     }
     /// Resolves a branch, ref, or revision expression to a commit.
     pub fn resolve(&self, name: &str) -> Result<GitRevision> {
-        let id = self.repository.rev_parse_single(name).map_err(GitError::Operation)?;
+        let id = self.repository.rev_parse_single(name).map_err(GitError::operation)?;
         self.revision_from_id(id.detach())
     }
     /// Resolves a named ref to a peeled commit.
     pub fn reference(&self, name: &str) -> Result<GitRef> {
-        let mut reference = self.repository.find_reference(name).map_err(GitError::Operation)?;
-        let target = reference.peel_to_id().map_err(GitError::Operation)?;
+        let mut reference = self.repository.find_reference(name).map_err(GitError::operation)?;
+        let target = reference.peel_to_id().map_err(GitError::operation)?;
         let target = GitCommitId::from_gix(target.detach());
         let full_name = reference.name().as_bstr().to_string();
         Ok(GitRef::new(full_name.clone(), ref_kind(&full_name), target))
@@ -153,15 +155,15 @@ impl GitRepository {
             .merge_bases_many(
                 left.commit_id()
                     .as_str()
-                    .parse()
+                    .parse::<gix::ObjectId>()
                     .map_err(|error| GitError::InvalidObjectId(error.to_string()))?,
                 &[right
                     .commit_id()
                     .as_str()
-                    .parse()
+                    .parse::<gix::ObjectId>()
                     .map_err(|error| GitError::InvalidObjectId(error.to_string()))?],
             )
-            .map_err(GitError::Operation)?;
+            .map_err(GitError::operation)?;
         let mut revisions =
             bases.into_iter().map(|id| self.revision_from_id(id)).collect::<Result<Vec<_>>>()?;
         revisions.sort_by(|left, right| left.commit_id().cmp(right.commit_id()));
@@ -178,7 +180,7 @@ impl GitRepository {
         let tree_id = revision
             .tree_id()
             .as_str()
-            .parse()
+            .parse::<gix::ObjectId>()
             .map_err(|error| GitError::InvalidObjectId(error.to_string()))?;
         let mut sources = BTreeMap::new();
         self.collect_java_sources(tree_id, Path::new(""), &mut sources)?;
@@ -188,7 +190,7 @@ impl GitRepository {
     fn revision_from_id(&self, id: impl Into<gix::ObjectId>) -> Result<GitRevision> {
         self.repository
             .find_commit(id)
-            .map_err(GitError::Operation)
+            .map_err(GitError::operation)
             .and_then(GitRevision::from_commit)
     }
 
@@ -196,13 +198,13 @@ impl GitRepository {
         let mut references = self
             .repository
             .references()
-            .map_err(GitError::Operation)?
+            .map_err(GitError::operation)?
             .prefixed(prefix)
-            .map_err(GitError::Operation)?
+            .map_err(GitError::operation)?
             .map(|reference| {
-                let mut reference = reference.map_err(GitError::Operation)?;
+                let mut reference = reference.map_err(GitError::operation)?;
                 let name = reference.name().as_bstr().to_string();
-                let target = reference.peel_to_id().map_err(GitError::Operation)?;
+                let target = reference.peel_to_id().map_err(GitError::operation)?;
                 Ok(GitRef::new(
                     name.clone(),
                     ref_kind(&name),
@@ -220,22 +222,20 @@ impl GitRepository {
         prefix: &Path,
         sources: &mut BTreeMap<PathBuf, String>,
     ) -> Result<()> {
-        let tree = self.repository.find_tree(tree_id).map_err(GitError::Operation)?;
+        let tree = self.repository.find_tree(tree_id).map_err(GitError::operation)?;
         for entry in tree.iter() {
             let entry = entry.map_err(|error| GitError::InvalidMetadata(error.to_string()))?;
             let filename = entry.filename().to_string();
             let path = prefix.join(filename);
             if entry.inner.mode.is_tree() {
                 self.collect_java_sources(entry.inner.oid.to_owned(), &path, sources)?;
-            } else if matches!(
-                entry.inner.mode,
-                gix::objs::tree::EntryMode::Blob | gix::objs::tree::EntryMode::BlobExecutable
-            ) && path.extension().is_some_and(|ext| ext == "java")
+            } else if entry.inner.mode.is_blob()
+                && path.extension().is_some_and(|ext| ext == "java")
             {
                 let blob = self
                     .repository
                     .find_blob(entry.inner.oid.to_owned())
-                    .map_err(GitError::Operation)?;
+                    .map_err(GitError::operation)?;
                 let source = String::from_utf8(blob.data.to_vec())
                     .map_err(|error| GitError::InvalidMetadata(error.to_string()))?;
                 sources.insert(path, source);

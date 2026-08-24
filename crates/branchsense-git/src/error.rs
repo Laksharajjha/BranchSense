@@ -5,10 +5,10 @@
 pub enum GitError {
     /// The requested path is not inside a discoverable repository.
     #[error("Git repository discovery failed: {0}")]
-    Discovery(#[source] gix::discover::Error),
+    Discovery(String),
     /// The repository operation failed.
     #[error("Git operation failed: {0}")]
-    Operation(#[source] gix::Error),
+    Operation(String),
     /// Semantic indexing failed before a Git snapshot could be published.
     #[error("Git semantic indexing failed: {0}")]
     Index(#[source] branchsense_index::IndexError),
@@ -21,6 +21,12 @@ pub enum GitError {
     /// A Git commit contained metadata that could not be decoded.
     #[error("invalid Git commit metadata: {0}")]
     InvalidMetadata(String),
+}
+
+impl GitError {
+    pub(crate) fn operation(error: impl std::fmt::Display) -> Self {
+        Self::Operation(error.to_string())
+    }
 }
 
 /// Result alias for Git operations.

@@ -444,6 +444,10 @@ impl RepositoryIndex {
     /// The source map must contain repository-relative paths. This method
     /// shares the parser, extractor, graph, provenance, and reporting pipeline
     /// with filesystem indexing while avoiding any working-tree mutation.
+    ///
+    /// # Errors
+    /// Returns an error when parser setup, semantic identity construction, or
+    /// graph publication fails.
     pub fn index_sources(
         &self,
         repository: RepositoryIdentity,

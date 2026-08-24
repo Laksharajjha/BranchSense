@@ -112,10 +112,10 @@ impl GitRevision {
         let parents = commit.parent_ids().map(|id| GitCommitId::from_gix(id.detach())).collect();
         let author = signature(
             commit.author().map_err(|error| GitError::InvalidMetadata(error.to_string()))?,
-        );
+        )?;
         let committer = signature(
             commit.committer().map_err(|error| GitError::InvalidMetadata(error.to_string()))?,
-        );
+        )?;
         let message = commit
             .message_raw()
             .map_err(|error| GitError::InvalidMetadata(error.to_string()))?
@@ -162,11 +162,12 @@ impl GitRevision {
     }
 }
 
-fn signature(signature: gix::actor::SignatureRef<'_>) -> GitSignature {
-    GitSignature::new(
+fn signature(signature: gix::actor::SignatureRef<'_>) -> Result<GitSignature> {
+    let time = signature.time().map_err(|error| GitError::InvalidMetadata(error.to_string()))?;
+    Ok(GitSignature::new(
         signature.name.to_string(),
         signature.email.to_string(),
-        signature.time.seconds,
-        signature.time.offset / 60,
-    )
+        time.seconds,
+        time.offset / 60,
+    ))
 }
