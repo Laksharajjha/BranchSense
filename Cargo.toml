@@ -11,6 +11,7 @@ members = [
     "crates/branchsense-query",
     "crates/branchsense-index",
     "crates/branchsense-diff",
+    "crates/branchsense-impact",
     "crates/branchsense-git",
 ]
 default-members = ["crates/branchsense-cli"]
