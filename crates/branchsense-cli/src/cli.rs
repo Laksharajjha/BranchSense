@@ -10,6 +10,7 @@ use branchsense_diff::SemanticDiffer;
 use branchsense_extractor_java::JavaExtractor;
 use branchsense_git::{GitRepository, GitSnapshotIndexer, MergeBaseResult};
 use branchsense_graph::{EdgeKind, SemanticGraph};
+use branchsense_impact::ImpactAnalyzer;
 use branchsense_index::{IndexOptions, RepositoryIndex};
 use branchsense_java::{JavaAdapter, JavaSyntaxTree};
 use branchsense_language::{AdapterConfig, AdapterRegistry};
@@ -58,6 +59,18 @@ enum Command {
     },
     /// Compare semantic snapshots at two Git revisions.
     Diff {
+        /// Repository path.
+        #[arg(long, default_value = ".")]
+        repo: PathBuf,
+        /// Earlier revision, branch, or ref.
+        #[arg(long)]
+        before: String,
+        /// Later revision, branch, or ref.
+        #[arg(long)]
+        after: String,
+    },
+    /// Analyze symbols affected by semantic changes between two revisions.
+    Impact {
         /// Repository path.
         #[arg(long, default_value = ".")]
         repo: PathBuf,
@@ -156,6 +169,9 @@ impl Cli {
             Command::Index { path } => index_repository(&path)?,
             Command::Git { command } => run_git_command(command)?,
             Command::Diff { repo, before, after } => diff_git_revisions(&repo, &before, &after)?,
+            Command::Impact { repo, before, after } => {
+                impact_git_revisions(&repo, &before, &after)?;
+            }
             Command::Callers { symbol, file, project } => {
                 query_java(file.as_deref(), project.as_deref(), &symbol, QueryOperation::Callers)?;
             }
@@ -302,6 +318,63 @@ fn diff_git_revisions(repo_path: &Path, before: &str, after: &str) -> Result<()>
             + diff.statistics().relationships_modified()
     );
     Ok(())
+}
+
+fn impact_git_revisions(repo_path: &Path, before: &str, after: &str) -> Result<()> {
+    let repository =
+        GitRepository::discover(repo_path).map_err(|error| CliError::Command(error.to_string()))?;
+    let before_revision =
+        repository.resolve(before).map_err(|error| CliError::Command(error.to_string()))?;
+    let after_revision =
+        repository.resolve(after).map_err(|error| CliError::Command(error.to_string()))?;
+    let indexer = GitSnapshotIndexer::default();
+    let before_snapshot = indexer
+        .index_revision(&repository, &before_revision, None)
+        .map_err(|error| CliError::Command(error.to_string()))?;
+    let after_snapshot = indexer
+        .index_revision(&repository, &after_revision, None)
+        .map_err(|error| CliError::Command(error.to_string()))?;
+    let diff = SemanticDiffer::new().diff_git(&before_snapshot, &after_snapshot);
+    let impacts =
+        ImpactAnalyzer::new().analyze(&diff, before_snapshot.semantic(), after_snapshot.semantic());
+    println!("Semantic Impact Analysis");
+    println!();
+    println!("Changed symbols: {}", impacts.statistics().changed_symbols());
+    println!("Impacted symbols: {}", impacts.statistics().impacted_symbols());
+    println!("Depth: {}", impacts.statistics().max_depth());
+    println!("Truncated: {}", impacts.statistics().truncated());
+    println!();
+    for entry in impacts.entries() {
+        println!(
+            "{}",
+            impact_symbol_name(&after_snapshot, &before_snapshot, entry.impacted_symbol())
+        );
+        for cause in entry.causes() {
+            let explanation = cause.explanation();
+            println!(
+                "  └─ {:?} {} (depth {})",
+                explanation.kind(),
+                impact_symbol_name(&after_snapshot, &before_snapshot, explanation.changed_symbol(),),
+                explanation.depth()
+            );
+        }
+    }
+    Ok(())
+}
+
+fn impact_symbol_name(
+    after: &branchsense_git::GitSemanticSnapshot,
+    before: &branchsense_git::GitSemanticSnapshot,
+    id: &branchsense_core::SymbolId,
+) -> String {
+    after
+        .semantic()
+        .graph()
+        .find_symbol(id)
+        .or_else(|| before.semantic().graph().find_symbol(id))
+        .and_then(branchsense_graph::GraphNode::definition)
+        .and_then(|definition| definition.qualified_name().map(ToString::to_string))
+        .unwrap_or_else(|| id.to_string())
 }
 
 #[derive(Clone, Copy)]

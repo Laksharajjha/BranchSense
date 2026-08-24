@@ -72,11 +72,18 @@
 - CLI graph inspection and diagnostic bundles
 - Performance benchmarks for warm incremental updates
 
+## Milestone 11 — Semantic impact analysis 🚧
+
+- Deterministic impact sets derived from semantic diffs
+- Bounded direct and transitive caller analysis
+- Structured causal explanations and truncation reporting
+- Git-backed `branchsense impact` inspection
+
 ## Future milestones
 
 - Git-backed repository and revision infrastructure is implemented locally;
   persistence and richer Git provenance remain future work.
-- Semantic change impact analysis
+- Branch impact analysis and semantic overlap candidates
 
 Editor clients, collaboration replication, and BCS-C consumers are deferred
 until the local semantic engine is proven correct, incremental, and observable.

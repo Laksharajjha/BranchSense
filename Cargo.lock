@@ -133,6 +133,7 @@ dependencies = [
  "branchsense-extractor-java",
  "branchsense-git",
  "branchsense-graph",
+ "branchsense-impact",
  "branchsense-index",
  "branchsense-java",
  "branchsense-language",
@@ -204,6 +205,24 @@ dependencies = [
  "criterion",
  "serde",
  "thiserror",
+]
+
+[[package]]
+name = "branchsense-impact"
+version = "0.1.0-alpha"
+dependencies = [
+ "branchsense-core",
+ "branchsense-diff",
+ "branchsense-extractor-java",
+ "branchsense-git",
+ "branchsense-graph",
+ "branchsense-index",
+ "branchsense-java",
+ "branchsense-parser",
+ "branchsense-semantic",
+ "criterion",
+ "serde",
+ "tempfile",
 ]
 
 [[package]]

@@ -40,6 +40,7 @@ cargo run --bin branchsense -- inspect crates/branchsense-extractor-java/tests/f
 | `branchsense-query` | Read-only typed semantic queries over graph snapshots. |
 | `branchsense-index` | Deterministic Java discovery and repository-wide graph indexing. |
 | `branchsense-diff` | Deterministic comparison of semantic index snapshots. |
+| `branchsense-impact` | Bounded, explainable semantic impact analysis over diffs and graph snapshots. |
 | `branchsense-git` | Read-only Git repositories, revisions, refs, merge bases, and Git-backed snapshots. |
 | `branchsense` | The CLI binary, argument parsing, command dispatch, and process logging. |
 
@@ -92,6 +93,7 @@ command output is written to stdout.
 - [Semantic queries](docs/semantic-queries.md)
 - [Repository indexing](docs/repository-indexing.md)
 - [Semantic diff](docs/semantic-diff.md)
+- [Semantic impact analysis](docs/semantic-impact.md)
 - [Git integration](docs/git-integration.md)
 - [Roadmap](ROADMAP.md)
 - [Contributing guide](CONTRIBUTING.md)

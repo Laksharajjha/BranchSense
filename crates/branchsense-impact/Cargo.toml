@@ -1,0 +1,37 @@
+[package]
+name = "branchsense-impact"
+description = "Bounded semantic impact analysis for BranchSense"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+branchsense-diff = { path = "../branchsense-diff" }
+branchsense-graph = { path = "../branchsense-graph" }
+branchsense-index = { path = "../branchsense-index" }
+branchsense-semantic = { path = "../branchsense-semantic" }
+branchsense-core = { path = "../branchsense-core" }
+serde.workspace = true
+
+[dev-dependencies]
+branchsense-extractor-java = { path = "../branchsense-extractor-java" }
+branchsense-git = { path = "../branchsense-git" }
+branchsense-java = { path = "../branchsense-java" }
+branchsense-parser = { path = "../branchsense-parser" }
+criterion.workspace = true
+tempfile.workspace = true
+
+[[bench]]
+name = "impact_analysis"
+harness = false
+
+[lints]
+workspace = true
