@@ -1,5 +1,9 @@
 # BranchSense
 
+<p align="center">
+  <img src="assets/branchsense-logo.svg" alt="BranchSense" width="720">
+</p>
+
 **Semantic intelligence for Git branches.**
 
 BranchSense understands relationships between your code so it can reason about
