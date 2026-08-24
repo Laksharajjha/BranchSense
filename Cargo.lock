@@ -214,6 +214,7 @@ dependencies = [
  "branchsense-core",
  "branchsense-diff",
  "branchsense-extractor-java",
+ "branchsense-git",
  "branchsense-graph",
  "branchsense-index",
  "branchsense-java",

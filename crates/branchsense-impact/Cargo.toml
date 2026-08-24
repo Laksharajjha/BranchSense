@@ -23,6 +23,7 @@ serde.workspace = true
 
 [dev-dependencies]
 branchsense-extractor-java = { path = "../branchsense-extractor-java" }
+branchsense-git = { path = "../branchsense-git" }
 branchsense-java = { path = "../branchsense-java" }
 branchsense-parser = { path = "../branchsense-parser" }
 criterion.workspace = true
