@@ -66,14 +66,25 @@ pub struct RepositoryIdentity {
 }
 
 impl RepositoryIdentity {
+    /// Creates an identity from an explicit repository, workspace, and
+    /// project scope.
+    pub fn new(
+        root: impl Into<PathBuf>,
+        repository_id: RepositoryId,
+        workspace_id: WorkspaceId,
+        project_id: ProjectId,
+    ) -> Self {
+        Self { root: root.into(), repository_id, workspace_id, project_id }
+    }
+
     fn from_root(root: &Path) -> std::result::Result<Self, branchsense_core::ModelError> {
         let key = root.to_string_lossy();
-        Ok(Self {
-            root: root.to_path_buf(),
-            repository_id: RepositoryId::new(format!("repository:path:{key}"))?,
-            workspace_id: WorkspaceId::new(format!("workspace:path:{key}"))?,
-            project_id: ProjectId::new(format!("project:java:{key}"))?,
-        })
+        Ok(Self::new(
+            root.to_path_buf(),
+            RepositoryId::new(format!("repository:path:{key}"))?,
+            WorkspaceId::new(format!("workspace:path:{key}"))?,
+            ProjectId::new(format!("project:java:{key}"))?,
+        ))
     }
     /// Returns the canonical repository root.
     #[must_use]
@@ -342,6 +353,117 @@ impl RepositoryIndex {
                     continue;
                 }
             };
+            let hash = content_hash(&source)?;
+            if let Some(existing) = documents.get(&relative) {
+                if existing.content_hash() == &hash {
+                    report.unchanged += 1;
+                    report.indexed += 1;
+                    continue;
+                }
+            }
+            let document_name = relative.to_string_lossy().to_string();
+            let parsed = match parser.parse_source(ParseInput::new(
+                &document_name,
+                source,
+                DocumentVersion::initial(),
+            )) {
+                Ok(parsed) => parsed,
+                Err(error) => {
+                    report.skipped += 1;
+                    report.diagnostics.push(IndexDiagnostic::new(
+                        relative,
+                        IndexStage::Parse,
+                        error.to_string(),
+                    ));
+                    continue;
+                }
+            };
+            report.parse_diagnostics += parsed.diagnostics().len();
+            let extracted = match extractor.extract(parsed.document()) {
+                Ok(extracted) => extracted,
+                Err(error) => {
+                    report.skipped += 1;
+                    report.diagnostics.push(IndexDiagnostic::new(
+                        relative,
+                        IndexStage::Extract,
+                        error.to_string(),
+                    ));
+                    continue;
+                }
+            };
+            report.extraction_diagnostics += extracted.diagnostics().len();
+            let document_id = DocumentId::new(document_name)?;
+            let revision_id = revision_id(&repository, &hash)?;
+            let provenance = FactProvenance::new(
+                repository.repository_id().clone(),
+                repository.workspace_id().clone(),
+                document_id.clone(),
+                revision_id.clone(),
+                hash.clone(),
+                ProducerIdentity::new("branchsense-extractor-java", env!("CARGO_PKG_VERSION"))?,
+            )
+            .with_project(repository.project_id().clone());
+            let facts = extracted.facts().clone().with_provenance(provenance);
+            graph = graph
+                .replace_document_facts(document_id.clone(), revision_id, facts.clone())
+                .map_err(IndexError::Graph)?;
+            documents.insert(
+                relative.clone(),
+                IndexedDocument { relative_path: relative, content_hash: hash, facts },
+            );
+            report.indexed += 1;
+        }
+        let deleted = documents
+            .keys()
+            .filter(|path| !current_paths.contains(*path))
+            .cloned()
+            .collect::<Vec<_>>();
+        for relative in deleted {
+            let document_id = DocumentId::new(relative.to_string_lossy().to_string())?;
+            let revision = revision_id(&repository, &ContentHash::new("fnv1a64:deleted")?)?;
+            graph = graph.remove_document(&document_id, revision).map_err(IndexError::Graph)?;
+            documents.remove(&relative);
+        }
+        let snapshot_revision = repository_revision(&repository, &documents)?;
+        let identity = SnapshotIdentity::new(
+            repository.repository_id().clone(),
+            repository.workspace_id().clone(),
+            snapshot_revision,
+        )
+        .with_project(repository.project_id().clone());
+        report.duration = started.elapsed();
+        Ok(IndexResult {
+            snapshot: SemanticIndexSnapshot { identity, repository, graph, documents },
+            report: report.finish(),
+        })
+    }
+
+    /// Indexes UTF-8 Java sources supplied by a Git tree or another immutable
+    /// source provider.
+    ///
+    /// The source map must contain repository-relative paths. This method
+    /// shares the parser, extractor, graph, provenance, and reporting pipeline
+    /// with filesystem indexing while avoiding any working-tree mutation.
+    pub fn index_sources(
+        &self,
+        repository: RepositoryIdentity,
+        sources: BTreeMap<PathBuf, String>,
+        previous: Option<&SemanticIndexSnapshot>,
+    ) -> Result<IndexResult> {
+        let started = Instant::now();
+        let parser =
+            JavaParser::new(self.options.parser.clone()).map_err(IndexError::ParseSetup)?;
+        let extractor = JavaExtractor::new();
+        let compatible_previous = previous
+            .filter(|snapshot| snapshot.repository().repository_id() == repository.repository_id());
+        let mut documents =
+            compatible_previous.map_or_else(BTreeMap::new, |snapshot| snapshot.documents.clone());
+        let mut graph = compatible_previous
+            .map_or_else(SemanticGraph::empty, |snapshot| snapshot.graph.clone());
+        let mut report = IndexReportBuilder::new(sources.len(), 0);
+        let mut current_paths = BTreeSet::new();
+        for (relative, source) in sources {
+            current_paths.insert(relative.clone());
             let hash = content_hash(&source)?;
             if let Some(existing) = documents.get(&relative) {
                 if existing.content_hash() == &hash {

@@ -6,7 +6,9 @@ use std::{
 };
 
 use branchsense_core::{BuildInfo, DocumentId, Language, QualifiedName, RevisionId};
+use branchsense_diff::SemanticDiffer;
 use branchsense_extractor_java::JavaExtractor;
+use branchsense_git::{GitRepository, GitSnapshotIndexer, MergeBaseResult};
 use branchsense_graph::{EdgeKind, SemanticGraph};
 use branchsense_index::{IndexOptions, RepositoryIndex};
 use branchsense_java::{JavaAdapter, JavaSyntaxTree};
@@ -48,6 +50,23 @@ enum Command {
     Index {
         /// Repository or project path to index.
         path: PathBuf,
+    },
+    /// Inspect Git state without modifying the repository.
+    Git {
+        #[command(subcommand)]
+        command: GitCommand,
+    },
+    /// Compare semantic snapshots at two Git revisions.
+    Diff {
+        /// Repository path.
+        #[arg(long, default_value = ".")]
+        repo: PathBuf,
+        /// Earlier revision, branch, or ref.
+        #[arg(long)]
+        before: String,
+        /// Later revision, branch, or ref.
+        #[arg(long)]
+        after: String,
     },
     /// Query callers of a symbol in one Java source graph.
     Callers {
@@ -106,6 +125,23 @@ enum Command {
     },
 }
 
+#[derive(Debug, Subcommand)]
+enum GitCommand {
+    /// Print repository identity and HEAD.
+    Info { path: PathBuf },
+    /// List local and remote branches.
+    Branches { path: PathBuf },
+    /// List tags and other refs exposed by the repository.
+    Refs { path: PathBuf },
+    /// Print the deterministic merge base of two revisions.
+    MergeBase {
+        branch_a: String,
+        branch_b: String,
+        #[arg(long, default_value = ".")]
+        path: PathBuf,
+    },
+}
+
 impl Cli {
     /// Executes the selected command.
     pub fn run(self) -> Result<()> {
@@ -118,6 +154,8 @@ impl Cli {
             Command::Parse { path } => parse_java(&path)?,
             Command::Inspect { path, graph } => inspect_java(&path, graph)?,
             Command::Index { path } => index_repository(&path)?,
+            Command::Git { command } => run_git_command(command)?,
+            Command::Diff { repo, before, after } => diff_git_revisions(&repo, &before, &after)?,
             Command::Callers { symbol, file, project } => {
                 query_java(file.as_deref(), project.as_deref(), &symbol, QueryOperation::Callers)?;
             }
@@ -151,6 +189,119 @@ impl Cli {
         }
         Ok(())
     }
+}
+
+fn run_git_command(command: GitCommand) -> Result<()> {
+    match command {
+        GitCommand::Info { path } => {
+            let repository = GitRepository::discover(path)
+                .map_err(|error| CliError::Command(error.to_string()))?;
+            let head = repository.head().map_err(|error| CliError::Command(error.to_string()))?;
+            println!("Repository ID: {}", repository.identity().id());
+            println!("Git directory: {}", repository.identity().git_dir().display());
+            if let Some(worktree) = repository.identity().worktree() {
+                println!("Working tree: {}", worktree.display());
+            }
+            println!("HEAD: {}", head.commit_id());
+            Ok(())
+        }
+        GitCommand::Branches { path } => {
+            let repository = GitRepository::discover(path)
+                .map_err(|error| CliError::Command(error.to_string()))?;
+            for reference in
+                repository.local_branches().map_err(|error| CliError::Command(error.to_string()))?
+            {
+                println!("{} {}", reference.name(), reference.target());
+            }
+            for reference in repository
+                .remote_branches()
+                .map_err(|error| CliError::Command(error.to_string()))?
+            {
+                println!("{} {}", reference.name(), reference.target());
+            }
+            Ok(())
+        }
+        GitCommand::Refs { path } => {
+            let repository = GitRepository::discover(path)
+                .map_err(|error| CliError::Command(error.to_string()))?;
+            for references in
+                [repository.local_branches(), repository.remote_branches(), repository.tags()]
+            {
+                for reference in references.map_err(|error| CliError::Command(error.to_string()))? {
+                    println!("{:?} {} {}", reference.kind(), reference.name(), reference.target());
+                }
+            }
+            Ok(())
+        }
+        GitCommand::MergeBase { branch_a, branch_b, path } => {
+            let repository = GitRepository::discover(path)
+                .map_err(|error| CliError::Command(error.to_string()))?;
+            let left = repository
+                .resolve(&branch_a)
+                .map_err(|error| CliError::Command(error.to_string()))?;
+            let right = repository
+                .resolve(&branch_b)
+                .map_err(|error| CliError::Command(error.to_string()))?;
+            match repository
+                .merge_bases(&left, &right)
+                .map_err(|error| CliError::Command(error.to_string()))?
+            {
+                MergeBaseResult::None => println!("No common ancestor"),
+                MergeBaseResult::Single(base) => println!("{}", base.commit_id()),
+                MergeBaseResult::Multiple(bases) => {
+                    println!("Multiple merge bases:");
+                    for base in bases {
+                        println!("{}", base.commit_id());
+                    }
+                }
+            }
+            Ok(())
+        }
+    }
+}
+
+fn diff_git_revisions(repo_path: &Path, before: &str, after: &str) -> Result<()> {
+    let repository =
+        GitRepository::discover(repo_path).map_err(|error| CliError::Command(error.to_string()))?;
+    let before_revision =
+        repository.resolve(before).map_err(|error| CliError::Command(error.to_string()))?;
+    let after_revision =
+        repository.resolve(after).map_err(|error| CliError::Command(error.to_string()))?;
+    let indexer = GitSnapshotIndexer::default();
+    let before_snapshot = indexer
+        .index_revision(&repository, &before_revision, None)
+        .map_err(|error| CliError::Command(error.to_string()))?;
+    let after_snapshot = indexer
+        .index_revision(&repository, &after_revision, None)
+        .map_err(|error| CliError::Command(error.to_string()))?;
+    let diff = SemanticDiffer::new().diff_git(&before_snapshot, &after_snapshot);
+    println!("Before: {}", before_revision.commit_id());
+    println!("After: {}", after_revision.commit_id());
+    println!(
+        "Documents changed: {}",
+        diff.statistics().documents_added()
+            + diff.statistics().documents_removed()
+            + diff.statistics().documents_modified()
+    );
+    println!(
+        "Symbols changed: {}",
+        diff.statistics().symbols_added()
+            + diff.statistics().symbols_removed()
+            + diff.statistics().symbols_modified()
+    );
+    println!(
+        "Facts changed: {}",
+        diff.statistics().facts_added()
+            + diff.statistics().facts_removed()
+            + diff.statistics().facts_modified()
+    );
+    println!(
+        "Relationships changed: {}",
+        diff.statistics().relationships_added()
+            + diff.statistics().relationships_removed()
+            + diff.statistics().relationships_modified()
+    );
+    Ok(())
 }
 
 #[derive(Clone, Copy)]

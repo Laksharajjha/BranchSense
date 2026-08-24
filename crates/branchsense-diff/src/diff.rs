@@ -3,6 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use branchsense_core::SymbolId;
+use branchsense_git::GitSemanticSnapshot;
 use branchsense_index::SemanticIndexSnapshot;
 use branchsense_semantic::{
     DependencyKind, FactId, ParameterFact, SemanticFact, SemanticFactRecord, SymbolDefinition,
@@ -40,6 +41,16 @@ impl SemanticDiffer {
         let symbols = compare_symbols(&before_records, &after_records, &mut statistics);
 
         SemanticDiff { documents, symbols, facts, unchanged_facts, relationships, statistics }
+    }
+
+    /// Compares two Git-backed snapshots using the same semantic diff engine.
+    #[must_use]
+    pub fn diff_git(
+        &self,
+        before: &GitSemanticSnapshot,
+        after: &GitSemanticSnapshot,
+    ) -> SemanticDiff {
+        self.diff(before.semantic(), after.semantic())
     }
 }
 

@@ -40,6 +40,7 @@ cargo run --bin branchsense -- inspect crates/branchsense-extractor-java/tests/f
 | `branchsense-query` | Read-only typed semantic queries over graph snapshots. |
 | `branchsense-index` | Deterministic Java discovery and repository-wide graph indexing. |
 | `branchsense-diff` | Deterministic comparison of semantic index snapshots. |
+| `branchsense-git` | Read-only Git repositories, revisions, refs, merge bases, and Git-backed snapshots. |
 | `branchsense` | The CLI binary, argument parsing, command dispatch, and process logging. |
 
 The semantic model is organized into explicit domain boundaries:
@@ -57,8 +58,9 @@ crates/branchsense-core/src/
 
 The repository indexing milestone adds deterministic multi-file Java
 discovery, coherent graph snapshots, incremental document reuse, and project
-queries. The semantic-diff milestone compares those snapshots without Git. Git
-intelligence, conflict prediction, and AI remain future work.
+queries. Git-backed inspection now resolves revisions and builds in-memory
+semantic snapshots directly from commit trees. Snapshot persistence, conflict
+prediction, and AI remain future work.
 
 The root manifest centrally pins the selected ecosystem: `tree-sitter` for
 incremental parsing, `gix` (gitoxide) for Git access, `petgraph` as the initial
@@ -90,6 +92,7 @@ command output is written to stdout.
 - [Semantic queries](docs/semantic-queries.md)
 - [Repository indexing](docs/repository-indexing.md)
 - [Semantic diff](docs/semantic-diff.md)
+- [Git integration](docs/git-integration.md)
 - [Roadmap](ROADMAP.md)
 - [Contributing guide](CONTRIBUTING.md)
 
