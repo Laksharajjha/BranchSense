@@ -54,6 +54,9 @@ jobs:
       - name: Compile repository indexing benchmark
         run: cargo bench -p branchsense-index --bench repository_index --no-run
 
+      - name: Compile Git repository benchmark
+        run: cargo bench -p branchsense-git --bench git_repository --no-run
+
       - name: Build release binary
         run: cargo build --workspace --release
 

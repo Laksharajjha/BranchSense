@@ -60,3 +60,20 @@ guarantee. See the project roadmap for planned milestones.
 
 [Unreleased]: https://github.com/Laksharajjha/BranchSense/compare/v0.1.0-alpha...HEAD
 [0.1.0-alpha]: https://github.com/Laksharajjha/BranchSense/releases/tag/v0.1.0-alpha
+## Unreleased
+
+### Added
+
+- Added the read-only `branchsense-git` crate for Git repository discovery,
+  commit metadata, refs, branches, and deterministic merge-base resolution.
+- Added direct Java tree indexing into Git-backed semantic snapshots without
+  checking out or modifying the working tree.
+- Added `branchsense git` inspection commands and revision-aware semantic diff.
+
+### Limitations
+
+- Git-backed snapshots remain in memory and are not persisted.
+- Git fact provenance remains wrapped by the Git snapshot boundary while the
+  existing semantic index retains its source-derived revision identity.
+- Cross-file/classpath resolution and branch collision analysis remain future
+  milestones.

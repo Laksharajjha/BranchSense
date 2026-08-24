@@ -45,11 +45,12 @@
 - Content-based unchanged reuse and document replacement/deletion ✅
 - Atomic repository snapshot publication and structured diagnostics ✅
 
-## Milestone 7 — Workspace identity and Git discovery
+## Milestone 7 — Workspace identity and Git discovery ✅
 
-- Repository discovery through `gix`
-- Canonical workspace/session lifecycle
-- Configuration loading and diagnostic reporting
+- Repository discovery through `gix` ✅
+- Read-only revision, ref, branch, and merge-base resolution ✅
+- Git-tree Java snapshot indexing ✅
+- Persistent snapshots and canonical workspace/session lifecycle
 
 ## Milestone 8 — Semantic graph foundation ✅
 
@@ -72,6 +73,10 @@
 - Performance benchmarks for warm incremental updates
 
 ## Future milestones
+
+- Git-backed repository and revision infrastructure is implemented locally;
+  persistence and richer Git provenance remain future work.
+- Semantic change impact analysis
 
 Editor clients, collaboration replication, and BCS-C consumers are deferred
 until the local semantic engine is proven correct, incremental, and observable.
