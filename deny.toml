@@ -4,20 +4,20 @@ ignore = []
 [bans]
 multiple-versions = "warn"
 wildcards = "allow"
+skip = [
+    # gix-pack currently requires hashbrown 0.16 while the rest of gix uses 0.17.
+    { name = "hashbrown", version = "0.16.1" },
+    # clap and the Criterion dependency graph currently resolve different syn lines.
+    { name = "syn", version = "2.0.119" },
+]
 
 [licenses]
 confidence-threshold = 0.8
 allow = [
     "Apache-2.0",
     "Apache-2.0 WITH LLVM-exception",
-    "BSD-2-Clause",
-    "BSD-3-Clause",
     "CC0-1.0",
-    "CDLA-Permissive-2.0",
-    "ISC",
     "MIT",
-    "MPL-2.0",
-    "OpenSSL",
     "Unicode-3.0",
     "Zlib",
 ]
