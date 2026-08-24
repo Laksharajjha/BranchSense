@@ -24,6 +24,7 @@ branchsense-diff = { path = "../branchsense-diff" }
 branchsense-git = { path = "../branchsense-git" }
 branchsense-graph = { path = "../branchsense-graph" }
 branchsense-index = { path = "../branchsense-index" }
+branchsense-impact = { path = "../branchsense-impact" }
 branchsense-java = { path = "../branchsense-java" }
 branchsense-language = { path = "../branchsense-language" }
 branchsense-parser = { path = "../branchsense-parser" }
