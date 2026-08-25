@@ -128,6 +128,7 @@ dependencies = [
 name = "branchsense"
 version = "0.1.0-alpha"
 dependencies = [
+ "branchsense-collision",
  "branchsense-core",
  "branchsense-diff",
  "branchsense-extractor-java",
@@ -145,6 +146,21 @@ dependencies = [
  "thiserror",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "branchsense-collision"
+version = "0.1.0-alpha"
+dependencies = [
+ "branchsense-core",
+ "branchsense-diff",
+ "branchsense-git",
+ "branchsense-impact",
+ "branchsense-overlap",
+ "criterion",
+ "serde",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]

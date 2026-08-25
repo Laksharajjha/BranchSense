@@ -13,6 +13,7 @@ members = [
     "crates/branchsense-diff",
     "crates/branchsense-impact",
     "crates/branchsense-overlap",
+    "crates/branchsense-collision",
     "crates/branchsense-git",
 ]
 default-members = ["crates/branchsense-cli"]
