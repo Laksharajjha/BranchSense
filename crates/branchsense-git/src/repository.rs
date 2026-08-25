@@ -141,6 +141,35 @@ impl GitRepository {
         let id = self.repository.rev_parse_single(name).map_err(GitError::operation)?;
         self.revision_from_id(id.detach())
     }
+    /// Walks bounded commit history from a revision in newest-first order.
+    ///
+    /// The traversal reads commit objects only. It does not check out a
+    /// branch, update refs, or modify the working tree.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the revision cannot be represented as a Git object
+    /// identifier or when ancestry traversal or commit metadata fails.
+    pub fn history(&self, revision: &GitRevision, max_commits: usize) -> Result<Vec<GitRevision>> {
+        let id = revision
+            .commit_id()
+            .as_str()
+            .parse::<gix::ObjectId>()
+            .map_err(|error| GitError::InvalidObjectId(error.to_string()))?;
+        let walk = self
+            .repository
+            .rev_walk([id])
+            .sorting(gix::revision::walk::Sorting::ByCommitTime(
+                gix::traverse::commit::simple::CommitTimeOrder::NewestFirst,
+            ))
+            .all()
+            .map_err(GitError::operation)?;
+        walk.take(max_commits)
+            .map(|info| {
+                info.map_err(GitError::operation).and_then(|info| self.revision_from_id(info.id))
+            })
+            .collect()
+    }
     /// Resolves a named ref to a peeled commit.
     ///
     /// # Errors

@@ -55,6 +55,17 @@ fn computes_divergent_merge_base_without_writing_repository() {
 }
 
 #[test]
+fn bounded_history_is_newest_first_and_read_only() {
+    let repo = repository();
+    let git = GitRepository::discover(repo.path()).expect("discover repository");
+    let head = git.resolve("main").expect("resolve main");
+    let history = git.history(&head, 2).expect("history");
+    assert_eq!(history.len(), 2);
+    assert_eq!(history[0].commit_id(), head.commit_id());
+    assert_eq!(git.resolve("main").expect("resolve unchanged main"), head);
+}
+
+#[test]
 fn rejects_missing_reference() {
     let root = repository();
     let repo = GitRepository::discover(root.path()).expect("repository");
