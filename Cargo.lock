@@ -134,6 +134,7 @@ dependencies = [
  "branchsense-extractor-java",
  "branchsense-git",
  "branchsense-graph",
+ "branchsense-history",
  "branchsense-impact",
  "branchsense-index",
  "branchsense-java",
@@ -143,6 +144,7 @@ dependencies = [
  "branchsense-query",
  "branchsense-semantic",
  "clap",
+ "serde_json",
  "thiserror",
  "tracing",
  "tracing-subscriber",
@@ -221,6 +223,22 @@ dependencies = [
  "branchsense-semantic",
  "criterion",
  "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "branchsense-history"
+version = "0.1.0-alpha"
+dependencies = [
+ "branchsense-core",
+ "branchsense-diff",
+ "branchsense-git",
+ "branchsense-index",
+ "branchsense-semantic",
+ "criterion",
+ "serde",
+ "serde_json",
+ "tempfile",
  "thiserror",
 ]
 

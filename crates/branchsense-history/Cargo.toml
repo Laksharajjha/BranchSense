@@ -1,0 +1,36 @@
+[package]
+name = "branchsense-history"
+description = "Bounded, deterministic historical evidence for BranchSense repositories."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+branchsense-core = { path = "../branchsense-core" }
+branchsense-diff = { path = "../branchsense-diff" }
+branchsense-git = { path = "../branchsense-git" }
+branchsense-index = { path = "../branchsense-index" }
+branchsense-semantic = { path = "../branchsense-semantic" }
+serde.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+branchsense-git = { path = "../branchsense-git" }
+criterion.workspace = true
+serde_json.workspace = true
+tempfile.workspace = true
+
+[[bench]]
+name = "history_analysis"
+harness = false
