@@ -93,11 +93,20 @@
 - Preserve signature, removal, transitive, and causal-path explanations.
 - Provide Git-backed `branchsense analyze` inspection.
 
-## Next — Historical and ownership signals
+## Milestone 14 — Historical signals ✅
 
-- Evaluate overlap evidence against historical merge outcomes.
-- Investigate co-change frequency, ownership concentration, and symbol hotness.
-- Validate whether these signals improve assessment before designing final BCS.
+- Bounded read-only Git ancestry traversal.
+- Revision-pinned change frequency and recency evidence.
+- Semantic symbol co-change with explicit file-level co-change fallback.
+- Deterministic JSON-compatible historical signal output.
+- Git-backed `branchsense history` inspection.
+- Explicitly defer unreliable conflict reconstruction.
+
+## Next — Ownership and code responsibility signals
+
+- Investigate responsibility evidence separately from author activity.
+- Define ownership boundaries without treating frequent changes as ownership.
+- Keep historical signals and collision assessment independent.
 
 ## Future milestones
 
