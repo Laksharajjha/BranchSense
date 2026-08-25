@@ -88,6 +88,8 @@ impl OverlapEvidence {
 pub struct OverlapExplanation {
     branch_a_changed: SymbolId,
     branch_b_changed: SymbolId,
+    branch_a_change_kind: Option<ChangeKind>,
+    branch_b_change_kind: Option<ChangeKind>,
     targets: Vec<SymbolId>,
     kind: OverlapKind,
     branch_a_evidence: Vec<OverlapEvidence>,
@@ -104,6 +106,16 @@ impl OverlapExplanation {
     #[must_use]
     pub fn branch_b_changed(&self) -> &SymbolId {
         &self.branch_b_changed
+    }
+    /// Returns the declaration change kind for branch A, when available.
+    #[must_use]
+    pub const fn branch_a_change_kind(&self) -> Option<ChangeKind> {
+        self.branch_a_change_kind
+    }
+    /// Returns the declaration change kind for branch B, when available.
+    #[must_use]
+    pub const fn branch_b_change_kind(&self) -> Option<ChangeKind> {
+        self.branch_b_change_kind
     }
     /// Returns the shared or cross-branch targets in stable order.
     #[must_use]
@@ -294,6 +306,8 @@ impl SemanticOverlapAnalyzer {
     ) -> OverlapSet {
         let changed_a = changed_symbols(diff_a);
         let changed_b = changed_symbols(diff_b);
+        let change_kinds_a = symbol_change_kinds(diff_a);
+        let change_kinds_b = symbol_change_kinds(diff_b);
         let evidence_a = evidence_by_pair(impact_a, self.options.max_depth);
         let evidence_b = evidence_by_pair(impact_b, self.options.max_depth);
         let mut candidates = BTreeMap::<OverlapKey, Candidate>::new();
@@ -395,7 +409,7 @@ impl SemanticOverlapAnalyzer {
                 truncated = true;
                 break;
             }
-            let explanation = candidate.into_explanation();
+            let explanation = candidate.into_explanation(&change_kinds_a, &change_kinds_b);
             statistics.max_depth = statistics.max_depth.max(
                 explanation
                     .branch_a_evidence
@@ -434,14 +448,22 @@ struct Candidate {
 }
 
 impl Candidate {
-    fn into_explanation(mut self) -> OverlapExplanation {
+    fn into_explanation(
+        mut self,
+        change_kinds_a: &BTreeMap<SymbolId, ChangeKind>,
+        change_kinds_b: &BTreeMap<SymbolId, ChangeKind>,
+    ) -> OverlapExplanation {
         self.a_evidence.sort_by(evidence_order);
         self.a_evidence.dedup();
         self.b_evidence.sort_by(evidence_order);
         self.b_evidence.dedup();
+        let left_kind = change_kinds_a.get(&self.key.left_changed).copied();
+        let right_kind = change_kinds_b.get(&self.key.right_changed).copied();
         OverlapExplanation {
             branch_a_changed: self.key.left_changed,
             branch_b_changed: self.key.right_changed,
+            branch_a_change_kind: left_kind,
+            branch_b_change_kind: right_kind,
             targets: self.key.targets,
             kind: self.key.kind,
             branch_a_evidence: self.a_evidence,
@@ -491,6 +513,16 @@ fn changed_symbols(diff: &SemanticDiff) -> BTreeSet<SymbolId> {
         }
     }
     symbols
+}
+
+fn symbol_change_kinds(diff: &SemanticDiff) -> BTreeMap<SymbolId, ChangeKind> {
+    diff.symbols()
+        .iter()
+        .filter(|change| change.kind() != ChangeKind::Unchanged)
+        .filter_map(|change| {
+            change.after_id().or(change.before_id()).cloned().map(|id| (id, change.kind()))
+        })
+        .collect()
 }
 
 fn source_symbol(fact: &SemanticFact) -> Option<SymbolId> {
