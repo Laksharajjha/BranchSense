@@ -26,6 +26,10 @@ and releases use semantic versioning with an explicit alpha phase.
   bounded evidence scoring, severity, and structured explanations.
 - `branchsense analyze --repo --base --branch-a --branch-b` for concise
   collision assessment from Git-backed semantic snapshots.
+- `branchsense-history` for bounded, revision-pinned frequency, recency,
+  semantic co-change, and separate file co-change evidence.
+- `branchsense history --repo --revision --max-commits` with optional `--json`
+  output for historical analysis.
 
 - `branchsense-diff` for deterministic document, fact, symbol, and relationship
   comparison between immutable semantic index snapshots.
