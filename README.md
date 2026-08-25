@@ -49,6 +49,7 @@ input for future branch-overlap and collision prediction.
 - [x] Read-only Git repository, revision, ref, and merge-base inspection
 - [x] Git-backed semantic snapshots loaded directly from commit trees
 - [x] Bounded semantic impact analysis with structured explanations
+- [x] Deterministic branch overlap candidates from a common Git merge base
 - [ ] Branch collision prediction / BCS — future work
 - [ ] VS Code or other IDE integration — future work
 - [ ] Collaboration server — future work
@@ -92,6 +93,10 @@ cargo run --bin branchsense -- diff --repo . --before main --after feature/payme
 
 # Analyze symbols affected by the semantic change.
 cargo run --bin branchsense -- impact --repo . --before main --after feature/payment
+
+# Compare two branches relative to their common base.
+cargo run --bin branchsense -- overlap --repo . --base main \
+  --branch-a feature/payment --branch-b feature/checkout
 ```
 
 Representative output from `inspect` has this shape:
@@ -128,9 +133,10 @@ Impact analysis
 Future branch collision detection
 ```
 
-The current product boundary ends at impact analysis. Branch comparison,
-collision prediction, IDE warnings, and collaboration workflows are not yet
-implemented.
+The current product boundary ends at deterministic branch overlap evidence.
+Probabilistic collision prediction, IDE warnings, and collaboration workflows
+are not yet implemented. The `overlap` command reports semantic evidence only;
+it does not assign a risk score.
 
 ## Architecture
 
@@ -152,6 +158,8 @@ Semantic diff
 Git-backed snapshot
     ↓
 Semantic impact analysis
+    ↓
+Branch overlap evidence
 ```
 
 - The parser produces language-neutral parsed documents.
@@ -162,6 +170,8 @@ Semantic impact analysis
 - The diff compares semantic state rather than source lines.
 - Git loads exact revisions without checking out or modifying the worktree.
 - Impact analysis follows supported graph relationships with explicit bounds.
+- Overlap analysis compares two branch deltas from one merge base and preserves
+  direct, impact, shared-impact, and cross-impact evidence.
 
 See the full [architecture document](ARCHITECTURE.md) for boundaries and design
 rationale.
@@ -185,6 +195,7 @@ rationale.
 - [Git integration](docs/git-integration.md)
 - [Semantic diff](docs/semantic-diff.md)
 - [Semantic impact analysis](docs/semantic-impact.md)
+- [Branch overlap analysis](docs/branch-overlap.md)
 - [Architecture](ARCHITECTURE.md)
 - [Roadmap](ROADMAP.md)
 - [Contributing](CONTRIBUTING.md)

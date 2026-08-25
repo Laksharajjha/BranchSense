@@ -79,10 +79,18 @@
 - Structured causal explanations and truncation reporting
 - Git-backed `branchsense impact` inspection
 
-## Next — Branch impact analysis
+## Milestone 12 — Branch impact analysis ✅
 
-- Compare the impact sets of two Git branches.
-- Produce deterministic semantic overlap candidates.
+- Compare two branch deltas relative to a unique common merge base.
+- Produce deterministic direct, impact, shared-impact, and cross-impact candidates.
+- Preserve bounded causal paths and report truncation.
+- Provide Git-backed `branchsense overlap` inspection.
+
+## Next — Collision prediction foundations
+
+- Evaluate overlap evidence against historical merge outcomes.
+- Define explainable policy and confidence boundaries without changing the
+  deterministic overlap API.
 
 ## Future milestones
 

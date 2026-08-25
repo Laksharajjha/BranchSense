@@ -10,7 +10,7 @@ and releases use semantic versioning with an explicit alpha phase.
 ### Planned
 
 - Persistent semantic snapshots and richer Git provenance.
-- Branch impact analysis and semantic overlap candidates.
+- Collision prediction foundations and historical validation.
 
 ### Added
 
@@ -18,6 +18,10 @@ and releases use semantic versioning with an explicit alpha phase.
   with structured causal explanations, direct and transitive caller traversal,
   and truncation statistics.
 - `branchsense impact --repo --before --after` for Git-backed impact inspection.
+- `branchsense-overlap` for deterministic semantic overlap evidence between two
+  branch changes relative to their common merge base.
+- `branchsense overlap --repo --base --branch-a --branch-b` for Git-backed
+  branch overlap inspection.
 
 - `branchsense-diff` for deterministic document, fact, symbol, and relationship
   comparison between immutable semantic index snapshots.
@@ -65,20 +69,3 @@ guarantee. See the project roadmap for planned milestones.
 
 [Unreleased]: https://github.com/Laksharajjha/BranchSense/compare/v0.1.0-alpha...HEAD
 [0.1.0-alpha]: https://github.com/Laksharajjha/BranchSense/releases/tag/v0.1.0-alpha
-## Unreleased
-
-### Added
-
-- Added the read-only `branchsense-git` crate for Git repository discovery,
-  commit metadata, refs, branches, and deterministic merge-base resolution.
-- Added direct Java tree indexing into Git-backed semantic snapshots without
-  checking out or modifying the working tree.
-- Added `branchsense git` inspection commands and revision-aware semantic diff.
-
-### Limitations
-
-- Git-backed snapshots remain in memory and are not persisted.
-- Git fact provenance remains wrapped by the Git snapshot boundary while the
-  existing semantic index retains its source-derived revision identity.
-- Cross-file/classpath resolution and branch collision analysis remain future
-  milestones.
