@@ -50,6 +50,7 @@ input for future branch-overlap and collision prediction.
 - [x] Git-backed semantic snapshots loaded directly from commit trees
 - [x] Bounded semantic impact analysis with structured explanations
 - [x] Deterministic branch overlap candidates from a common Git merge base
+- [x] Deterministic semantic collision assessment with explainable evidence
 - [ ] Branch collision prediction / BCS — future work
 - [ ] VS Code or other IDE integration — future work
 - [ ] Collaboration server — future work
@@ -96,6 +97,10 @@ cargo run --bin branchsense -- impact --repo . --before main --after feature/pay
 
 # Compare two branches relative to their common base.
 cargo run --bin branchsense -- overlap --repo . --base main \
+  --branch-a feature/payment --branch-b feature/checkout
+
+# Assess the strength of semantic collision evidence.
+cargo run --bin branchsense -- analyze --repo . --base main \
   --branch-a feature/payment --branch-b feature/checkout
 ```
 
@@ -160,6 +165,8 @@ Git-backed snapshot
 Semantic impact analysis
     ↓
 Branch overlap evidence
+    ↓
+Semantic collision assessment
 ```
 
 - The parser produces language-neutral parsed documents.
@@ -196,6 +203,7 @@ rationale.
 - [Semantic diff](docs/semantic-diff.md)
 - [Semantic impact analysis](docs/semantic-impact.md)
 - [Branch overlap analysis](docs/branch-overlap.md)
+- [Semantic collision engine](docs/collision-engine.md)
 - [Architecture](ARCHITECTURE.md)
 - [Roadmap](ROADMAP.md)
 - [Contributing](CONTRIBUTING.md)

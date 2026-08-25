@@ -86,11 +86,18 @@
 - Preserve bounded causal paths and report truncation.
 - Provide Git-backed `branchsense overlap` inspection.
 
-## Next — Collision prediction foundations
+## Milestone 13 — Semantic collision assessment ✅
+
+- Classify semantic overlap into explicit collision evidence factors.
+- Produce deterministic evidence strength and severity without probability claims.
+- Preserve signature, removal, transitive, and causal-path explanations.
+- Provide Git-backed `branchsense analyze` inspection.
+
+## Next — Historical and ownership signals
 
 - Evaluate overlap evidence against historical merge outcomes.
-- Define explainable policy and confidence boundaries without changing the
-  deterministic overlap API.
+- Investigate co-change frequency, ownership concentration, and symbol hotness.
+- Validate whether these signals improve assessment before designing final BCS.
 
 ## Future milestones
 

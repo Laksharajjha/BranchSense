@@ -22,6 +22,10 @@ and releases use semantic versioning with an explicit alpha phase.
   branch changes relative to their common merge base.
 - `branchsense overlap --repo --base --branch-a --branch-b` for Git-backed
   branch overlap inspection.
+- `branchsense-collision` for deterministic semantic collision factors,
+  bounded evidence scoring, severity, and structured explanations.
+- `branchsense analyze --repo --base --branch-a --branch-b` for concise
+  collision assessment from Git-backed semantic snapshots.
 
 - `branchsense-diff` for deterministic document, fact, symbol, and relationship
   comparison between immutable semantic index snapshots.
