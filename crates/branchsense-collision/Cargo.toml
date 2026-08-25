@@ -1,0 +1,36 @@
+[package]
+name = "branchsense-collision"
+description = "Deterministic semantic collision assessment for BranchSense."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+branchsense-core = { path = "../branchsense-core" }
+branchsense-diff = { path = "../branchsense-diff" }
+branchsense-impact = { path = "../branchsense-impact" }
+branchsense-overlap = { path = "../branchsense-overlap" }
+serde.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+branchsense-diff = { path = "../branchsense-diff" }
+branchsense-git = { path = "../branchsense-git" }
+branchsense-impact = { path = "../branchsense-impact" }
+criterion.workspace = true
+serde_json.workspace = true
+tempfile.workspace = true
+
+[[bench]]
+name = "collision_analysis"
+harness = false
