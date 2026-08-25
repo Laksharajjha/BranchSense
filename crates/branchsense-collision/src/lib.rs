@@ -562,6 +562,27 @@ mod tests {
         })
     }
 
+    fn reverse_impact(kind: &str, depth: usize) -> serde_json::Value {
+        json!({
+            "branch_a_changed": "symbol:b",
+            "branch_b_changed": "symbol:a",
+            "branch_a_change_kind": "Modified",
+            "branch_b_change_kind": "Modified",
+            "targets": ["symbol:a"],
+            "kind": "ImpactChange",
+            "branch_a_evidence": [],
+            "branch_b_evidence": [{
+                "changed_symbol": "symbol:b",
+                "target_symbol": "symbol:a",
+                "kind": kind,
+                "relationship": "Calls",
+                "depth": depth,
+                "path": {"steps": []},
+                "relationship_fact": null
+            }]
+        })
+    }
+
     #[test]
     fn no_overlap_has_no_collision() {
         let assessment = CollisionAnalyzer::new().analyze(&set(Vec::new()));
@@ -650,17 +671,15 @@ mod tests {
             "Modified",
             "Modified",
         )]));
-        let reverse = CollisionAnalyzer::new().analyze(&set(vec![impact(
-            "DirectCaller",
-            1,
-            "Modified",
-            "Modified",
-        )]));
+        let reverse =
+            CollisionAnalyzer::new().analyze(&set(vec![reverse_impact("DirectCaller", 1)]));
         assert_eq!(forward.evidence_score(), reverse.evidence_score());
         assert_eq!(forward.severity(), reverse.severity());
-        assert_eq!(
-            serde_json::to_vec(&forward).expect("serialize"),
-            serde_json::to_vec(&reverse).expect("serialize")
-        );
+        assert!(!forward.explanations().is_empty());
+        assert!(!reverse.explanations().is_empty());
+        let serialized = serde_json::to_vec(&forward).expect("serialize");
+        let decoded: CollisionAssessment =
+            serde_json::from_slice(&serialized).expect("deserialize");
+        assert_eq!(forward, decoded);
     }
 }
