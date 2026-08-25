@@ -5,6 +5,7 @@ use std::{
     time::Instant,
 };
 
+use branchsense_collision::CollisionAnalyzer;
 use branchsense_core::{BuildInfo, DocumentId, Language, QualifiedName, RevisionId};
 use branchsense_diff::SemanticDiffer;
 use branchsense_extractor_java::JavaExtractor;
@@ -84,6 +85,21 @@ enum Command {
     },
     /// Analyze semantic overlap between two branches from their common base.
     Overlap {
+        /// Repository path.
+        #[arg(long, default_value = ".")]
+        repo: PathBuf,
+        /// Expected common-base reference.
+        #[arg(long)]
+        base: String,
+        /// First branch, revision, or ref.
+        #[arg(long)]
+        branch_a: String,
+        /// Second branch, revision, or ref.
+        #[arg(long)]
+        branch_b: String,
+    },
+    /// Assess deterministic semantic collision evidence between two branches.
+    Analyze {
         /// Repository path.
         #[arg(long, default_value = ".")]
         repo: PathBuf,
@@ -190,6 +206,9 @@ impl Cli {
             }
             Command::Overlap { repo, base, branch_a, branch_b } => {
                 overlap_git_revisions(&repo, &base, &branch_a, &branch_b)?;
+            }
+            Command::Analyze { repo, base, branch_a, branch_b } => {
+                analyze_git_revisions(&repo, &base, &branch_a, &branch_b)?;
             }
             Command::Callers { symbol, file, project } => {
                 query_java(file.as_deref(), project.as_deref(), &symbol, QueryOperation::Callers)?;
@@ -495,6 +514,118 @@ fn overlap_symbol_name(
     id: &branchsense_core::SymbolId,
 ) -> String {
     impact_symbol_name(first, second, id)
+}
+
+#[allow(clippy::too_many_lines)]
+fn analyze_git_revisions(
+    repo_path: &Path,
+    base: &str,
+    branch_a: &str,
+    branch_b: &str,
+) -> Result<()> {
+    let repository =
+        GitRepository::discover(repo_path).map_err(|error| CliError::Command(error.to_string()))?;
+    let requested_base =
+        repository.resolve(base).map_err(|error| CliError::Command(error.to_string()))?;
+    let revision_a =
+        repository.resolve(branch_a).map_err(|error| CliError::Command(error.to_string()))?;
+    let revision_b =
+        repository.resolve(branch_b).map_err(|error| CliError::Command(error.to_string()))?;
+    let merge_base = match repository
+        .merge_bases(&revision_a, &revision_b)
+        .map_err(|error| CliError::Command(error.to_string()))?
+    {
+        MergeBaseResult::None => {
+            return Err(CliError::Command(format!(
+                "branches `{branch_a}` and `{branch_b}` have no common ancestor"
+            )));
+        }
+        MergeBaseResult::Multiple(_) => {
+            return Err(CliError::Command(format!(
+                "branches `{branch_a}` and `{branch_b}` have multiple merge bases"
+            )));
+        }
+        MergeBaseResult::Single(base) => base,
+    };
+    if merge_base.commit_id() != requested_base.commit_id() {
+        return Err(CliError::Command(format!(
+            "`{base}` is not the common merge base; expected {}",
+            merge_base.commit_id()
+        )));
+    }
+
+    let indexer = GitSnapshotIndexer::default();
+    let base_snapshot = indexer
+        .index_revision(&repository, &merge_base, None)
+        .map_err(|error| CliError::Command(error.to_string()))?;
+    let snapshot_a = indexer
+        .index_revision(&repository, &revision_a, None)
+        .map_err(|error| CliError::Command(error.to_string()))?;
+    let snapshot_b = indexer
+        .index_revision(&repository, &revision_b, None)
+        .map_err(|error| CliError::Command(error.to_string()))?;
+    let differ = SemanticDiffer::new();
+    let diff_a = differ.diff_git(&base_snapshot, &snapshot_a);
+    let diff_b = differ.diff_git(&base_snapshot, &snapshot_b);
+    let impact_analyzer = ImpactAnalyzer::new();
+    let impact_a =
+        impact_analyzer.analyze(&diff_a, base_snapshot.semantic(), snapshot_a.semantic());
+    let impact_b =
+        impact_analyzer.analyze(&diff_b, base_snapshot.semantic(), snapshot_b.semantic());
+    let overlaps = branchsense_overlap::SemanticOverlapAnalyzer::new()
+        .analyze(&diff_a, &impact_a, &diff_b, &impact_b);
+    let assessment = CollisionAnalyzer::new().analyze(&overlaps);
+
+    println!("BranchSense Semantic Analysis");
+    println!();
+    println!("Base: {}@{}", base, merge_base.commit_id());
+    println!("Branch A: {}@{}", branch_a, revision_a.commit_id());
+    println!("Branch B: {}@{}", branch_b, revision_b.commit_id());
+    println!();
+    println!("Changes:");
+    println!("  Branch A: {} symbol(s)", overlaps.statistics().branch_a_changed());
+    println!("  Branch B: {} symbol(s)", overlaps.statistics().branch_b_changed());
+    println!("Semantic overlaps: {}", overlaps.statistics().overlaps());
+    println!();
+    println!("Assessment:");
+    println!("  Severity: {:?}", assessment.severity());
+    println!("  Evidence score: {} / 100", assessment.evidence_score());
+    if assessment.is_empty() {
+        println!("  No semantic collision detected.");
+    } else {
+        println!();
+        println!("Factors:");
+        for factor in assessment.factors() {
+            println!("  - {:?} (strength {})", factor.kind(), factor.strength());
+        }
+        println!();
+        println!("Explanations:");
+        for explanation in assessment.explanations() {
+            println!("  - {}", explanation.summary());
+            println!(
+                "    A: {}",
+                overlap_symbol_name(&snapshot_a, &base_snapshot, explanation.branch_a_changed())
+            );
+            println!(
+                "    B: {}",
+                overlap_symbol_name(&snapshot_b, &base_snapshot, explanation.branch_b_changed())
+            );
+            for target in explanation.targets() {
+                println!("    Target: {}", overlap_symbol_name(&snapshot_a, &snapshot_b, target));
+            }
+            if let Some(depth) = explanation.evidence().branch_a_depth() {
+                println!("    A impact depth: {depth}");
+            }
+            if let Some(depth) = explanation.evidence().branch_b_depth() {
+                println!("    B impact depth: {depth}");
+            }
+        }
+    }
+    println!();
+    println!(
+        "This is an assessment of semantic collision evidence, not a probability of merge failure."
+    );
+    Ok(())
 }
 
 #[derive(Clone, Copy)]

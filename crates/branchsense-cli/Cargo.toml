@@ -19,6 +19,7 @@ path = "src/main.rs"
 
 [dependencies]
 branchsense-core = { path = "../branchsense-core" }
+branchsense-collision = { path = "../branchsense-collision" }
 branchsense-extractor-java = { path = "../branchsense-extractor-java" }
 branchsense-diff = { path = "../branchsense-diff" }
 branchsense-git = { path = "../branchsense-git" }
