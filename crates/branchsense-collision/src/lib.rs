@@ -421,8 +421,10 @@ fn factor_contributions(
     if has_signature_interaction(explanation) {
         factors.push((CollisionFactorKind::SignatureInteraction, 85));
     }
-    if is_removed(explanation.branch_a_change_kind())
-        || is_removed(explanation.branch_b_change_kind())
+    if (is_removed(explanation.branch_a_change_kind())
+        || is_removed(explanation.branch_b_change_kind()))
+        && (!explanation.branch_a_evidence().is_empty()
+            || !explanation.branch_b_evidence().is_empty())
     {
         factors.push((CollisionFactorKind::RemovalInteraction, 90));
     }
