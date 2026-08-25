@@ -137,6 +137,7 @@ dependencies = [
  "branchsense-index",
  "branchsense-java",
  "branchsense-language",
+ "branchsense-overlap",
  "branchsense-parser",
  "branchsense-query",
  "branchsense-semantic",
@@ -264,6 +265,21 @@ dependencies = [
  "criterion",
  "serde",
  "thiserror",
+]
+
+[[package]]
+name = "branchsense-overlap"
+version = "0.1.0-alpha"
+dependencies = [
+ "branchsense-core",
+ "branchsense-diff",
+ "branchsense-git",
+ "branchsense-impact",
+ "branchsense-index",
+ "branchsense-semantic",
+ "criterion",
+ "serde",
+ "tempfile",
 ]
 
 [[package]]
