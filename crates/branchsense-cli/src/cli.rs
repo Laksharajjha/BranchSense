@@ -11,6 +11,7 @@ use branchsense_diff::SemanticDiffer;
 use branchsense_extractor_java::JavaExtractor;
 use branchsense_git::{GitRepository, GitSnapshotIndexer, MergeBaseResult};
 use branchsense_graph::{EdgeKind, SemanticGraph};
+use branchsense_history::{HistoricalAnalyzer, HistoricalOptions};
 use branchsense_impact::ImpactAnalyzer;
 use branchsense_index::{IndexOptions, RepositoryIndex};
 use branchsense_java::{JavaAdapter, JavaSyntaxTree};
@@ -113,6 +114,21 @@ enum Command {
         #[arg(long)]
         branch_b: String,
     },
+    /// Analyze bounded historical semantic evidence from a Git revision.
+    History {
+        /// Repository path.
+        #[arg(long, default_value = ".")]
+        repo: PathBuf,
+        /// Revision, branch, or ref at which the history walk starts.
+        #[arg(long)]
+        revision: String,
+        /// Maximum number of commits to inspect.
+        #[arg(long, default_value_t = 500)]
+        max_commits: usize,
+        /// Emit the complete machine-readable result as JSON.
+        #[arg(long)]
+        json: bool,
+    },
     /// Query callers of a symbol in one Java source graph.
     Callers {
         /// Fully qualified symbol name.
@@ -209,6 +225,9 @@ impl Cli {
             }
             Command::Analyze { repo, base, branch_a, branch_b } => {
                 analyze_git_revisions(&repo, &base, &branch_a, &branch_b)?;
+            }
+            Command::History { repo, revision, max_commits, json } => {
+                history_git_revision(&repo, &revision, max_commits, json)?;
             }
             Command::Callers { symbol, file, project } => {
                 query_java(file.as_deref(), project.as_deref(), &symbol, QueryOperation::Callers)?;
@@ -514,6 +533,78 @@ fn overlap_symbol_name(
     id: &branchsense_core::SymbolId,
 ) -> String {
     impact_symbol_name(first, second, id)
+}
+
+#[allow(clippy::too_many_lines)]
+fn history_git_revision(
+    repo_path: &Path,
+    revision: &str,
+    max_commits: usize,
+    json: bool,
+) -> Result<()> {
+    let repository =
+        GitRepository::discover(repo_path).map_err(|error| CliError::Command(error.to_string()))?;
+    let revision_name = revision.to_owned();
+    let revision =
+        repository.resolve(revision).map_err(|error| CliError::Command(error.to_string()))?;
+    let signals = HistoricalAnalyzer::new()
+        .analyze(&repository, &revision, HistoricalOptions::new(max_commits))
+        .map_err(|error| CliError::Command(error.to_string()))?;
+    if json {
+        let output = serde_json::to_string_pretty(&signals)
+            .map_err(|error| CliError::Command(error.to_string()))?;
+        println!("{output}");
+        return Ok(());
+    }
+
+    println!("Historical Analysis");
+    println!();
+    println!("Revision: {}@{}", revision_name, revision.commit_id());
+    println!("History: {} commits", signals.commits_analyzed());
+    println!();
+    println!("Most frequently changed:");
+    let mut frequencies = signals.change_frequency().iter().collect::<Vec<_>>();
+    frequencies.sort_by(|left, right| {
+        right
+            .total_changes()
+            .cmp(&left.total_changes())
+            .then_with(|| left.symbol().cmp(right.symbol()))
+    });
+    for signal in frequencies.into_iter().take(10) {
+        println!("  {} ({:?})", signal.symbol().qualified_name(), signal.symbol().kind());
+        println!("    {} changes", signal.total_changes());
+    }
+    println!();
+    println!("Strongest symbol co-change relationships:");
+    let mut co_changes = signals.symbol_co_change().iter().collect::<Vec<_>>();
+    co_changes.sort_by(|left, right| {
+        right
+            .co_change_count()
+            .cmp(&left.co_change_count())
+            .then_with(|| left.left().cmp(right.left()))
+            .then_with(|| left.right().cmp(right.right()))
+    });
+    for signal in co_changes.into_iter().take(10) {
+        println!("  {} <-> {}", signal.left().qualified_name(), signal.right().qualified_name());
+        println!(
+            "    co-changed: {} / {} commits",
+            signal.co_change_count(),
+            signal.commits_considered()
+        );
+    }
+    println!();
+    println!("Recent changes:");
+    for signal in signals.recency().iter().take(10) {
+        println!("  {}", signal.symbol().qualified_name());
+        println!(
+            "    last changed: {} (age {} commits)",
+            signal.last_changed_revision(),
+            signal.age_in_commits()
+        );
+    }
+    println!();
+    println!("Historical signals are evidence only; they are not collision probabilities or BCS.");
+    Ok(())
 }
 
 #[allow(clippy::too_many_lines)]
