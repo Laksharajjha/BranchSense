@@ -52,6 +52,7 @@ input for future branch-overlap and collision prediction.
 - [x] Deterministic branch overlap candidates from a common Git merge base
 - [x] Deterministic semantic collision assessment with explainable evidence
 - [x] Bounded historical semantic evidence and co-change analysis
+- [x] Bounded historical contributor responsibility evidence
 - [ ] Branch collision prediction / BCS — future work
 - [ ] VS Code or other IDE integration — future work
 - [ ] Collaboration server — future work
@@ -106,6 +107,9 @@ cargo run --bin branchsense -- analyze --repo . --base main \
 
 # Inspect bounded historical semantic evidence.
 cargo run --bin branchsense -- history --repo . --revision main --max-commits 500
+
+# Inspect historical contributor responsibility evidence.
+cargo run --bin branchsense -- ownership --repo . --revision main --max-commits 500
 ```
 
 Representative output from `inspect` has this shape:
