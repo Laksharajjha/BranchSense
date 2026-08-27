@@ -48,12 +48,10 @@ branchsense impact --repo . --before main --after feature/payment
 ```
 
 It builds two in-memory Git semantic snapshots, computes a semantic diff, and
-prints structured impact summaries. Snapshot persistence and branch-overlap
-analysis are intentionally outside this milestone.
+prints structured impact summaries. Snapshot persistence remains deferred.
 
 ## Limitations
 
 Impact analysis currently relies on the relationships emitted by the semantic
-graph. Classpath-wide resolution, data-flow effects, reflection, generated
-code, and branch-to-branch overlap are not modeled. The next milestone will
-compare impact sets from two branches; it will not be part of this crate.
+graph. Classpath-wide resolution, data-flow effects, reflection, and generated
+code are not modeled. Branch overlap is provided by a separate crate.

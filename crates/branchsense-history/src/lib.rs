@@ -25,7 +25,10 @@ use branchsense_git::{
     GitCommitId, GitError, GitRepository, GitRevision, GitSemanticSnapshot, GitSnapshotIndexer,
 };
 use branchsense_index::SemanticIndexSnapshot;
-use branchsense_semantic::{SemanticFact, SemanticFactRecord, SymbolDefinition, SymbolKind};
+use branchsense_semantic::{
+    AnalysisProvenance, EvidenceState, SemanticEntityIdentity, SemanticFact, SemanticFactRecord,
+    SymbolDefinition,
+};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -35,6 +38,9 @@ pub enum HistoricalError {
     /// Read-only Git traversal or snapshot loading failed.
     #[error(transparent)]
     Git(#[from] GitError),
+    /// A canonical provenance identity could not be constructed.
+    #[error("historical identity construction failed: {0}")]
+    Identity(#[from] branchsense_core::ModelError),
     /// The requested history window is invalid.
     #[error("history option `{0}` must be greater than zero")]
     InvalidOption(&'static str),
@@ -44,30 +50,7 @@ pub enum HistoricalError {
 pub type Result<T> = std::result::Result<T, HistoricalError>;
 
 /// A stable semantic key used only for best-effort cross-revision comparison.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct SymbolKey {
-    document: PathBuf,
-    kind: SymbolKind,
-    qualified_name: String,
-}
-
-impl SymbolKey {
-    /// Returns the repository-relative document path.
-    #[must_use]
-    pub fn document(&self) -> &std::path::Path {
-        &self.document
-    }
-    /// Returns the language-neutral declaration kind.
-    #[must_use]
-    pub const fn kind(&self) -> SymbolKind {
-        self.kind
-    }
-    /// Returns the signature-independent qualified name used for matching.
-    #[must_use]
-    pub fn qualified_name(&self) -> &str {
-        &self.qualified_name
-    }
-}
+pub type SymbolKey = SemanticEntityIdentity;
 
 /// One symbol's historical change frequency.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -220,6 +203,8 @@ impl FileCoChangeSignal {
 pub struct HistoricalSignals {
     analysis_revision: GitCommitId,
     commits_analyzed: usize,
+    state: EvidenceState,
+    provenance: AnalysisProvenance,
     change_frequency: Vec<ChangeFrequencySignal>,
     recency: Vec<RecencySignal>,
     symbol_co_change: Vec<CoChangeSignal>,
@@ -236,6 +221,16 @@ impl HistoricalSignals {
     #[must_use]
     pub const fn commits_analyzed(&self) -> usize {
         self.commits_analyzed
+    }
+    /// Returns whether historical analysis was observed, empty, or inconclusive.
+    #[must_use]
+    pub const fn state(&self) -> EvidenceState {
+        self.state
+    }
+    /// Returns provenance sufficient to reproduce the bounded analysis.
+    #[must_use]
+    pub fn provenance(&self) -> &AnalysisProvenance {
+        &self.provenance
     }
     /// Returns symbol frequency evidence in stable key order.
     #[must_use]
@@ -351,7 +346,7 @@ impl HistoricalAnalyzer {
 
         let commits_analyzed = history.len();
         let recency = frequency_recency(&frequency, &history);
-        let change_frequency = frequency
+        let change_frequency: Vec<ChangeFrequencySignal> = frequency
             .into_iter()
             .map(|(symbol, state)| ChangeFrequencySignal {
                 symbol,
@@ -366,6 +361,18 @@ impl HistoricalAnalyzer {
         Ok(HistoricalSignals {
             analysis_revision: revision.commit_id().clone(),
             commits_analyzed,
+            state: if change_frequency.is_empty()
+                && symbol_co_change.is_empty()
+                && file_co_change.is_empty()
+            {
+                EvidenceState::NoEvidence
+            } else {
+                EvidenceState::Observed
+            },
+            provenance: AnalysisProvenance::new()
+                .with_repository(repository.identity().id().clone())
+                .with_revision(branchsense_core::RevisionId::new(revision.commit_id().as_str())?)
+                .with_history_window(options.max_commits),
             change_frequency,
             recency,
             symbol_co_change,
@@ -461,11 +468,11 @@ fn symbol_key(definition: &SymbolDefinition) -> SymbolKey {
         .map_or_else(|| definition.name().to_string(), ToString::to_string);
     let qualified_name =
         qualified_name.split_once('(').map_or(qualified_name.as_str(), |(name, _)| name).to_owned();
-    SymbolKey {
-        document: PathBuf::from(definition.location().document_id().as_str()),
-        kind: definition.kind(),
+    SemanticEntityIdentity::new(
+        PathBuf::from(definition.location().document_id().as_str()),
+        definition.kind(),
         qualified_name,
-    }
+    )
 }
 
 fn source_symbol(fact: &SemanticFact) -> Option<SymbolId> {
