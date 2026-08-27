@@ -14,6 +14,13 @@ and releases use semantic versioning with an explicit alpha phase.
 
 ### Added
 
+- `branchsense-ownership` for bounded, read-only contributor responsibility
+  evidence derived from Git commit authors.
+- Separate semantic symbol and document responsibility scopes with contribution
+  counts, shares, recent contributors, concentration, and commit provenance.
+- `branchsense ownership --repo --revision --max-commits` with optional `--json`
+  output. Results are historical evidence, not ownership certainty.
+
 - `branchsense-impact` for bounded, deterministic semantic impact analysis
   with structured causal explanations, direct and transitive caller traversal,
   and truncation statistics.

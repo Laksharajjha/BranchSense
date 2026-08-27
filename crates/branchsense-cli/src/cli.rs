@@ -17,6 +17,7 @@ use branchsense_index::{IndexOptions, RepositoryIndex};
 use branchsense_java::{JavaAdapter, JavaSyntaxTree};
 use branchsense_language::{AdapterConfig, AdapterRegistry};
 use branchsense_overlap::SemanticOverlapAnalyzer;
+use branchsense_ownership::{ResponsibilityAnalyzer, ResponsibilityEntity, ResponsibilityOptions};
 use branchsense_query::{Query, QueryNode, QueryOptions, QueryResult, RelationshipResult};
 use branchsense_semantic::SemanticFact;
 use clap::{Parser as ClapParser, Subcommand};
@@ -129,6 +130,21 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Analyze bounded historical contributor responsibility evidence.
+    Ownership {
+        /// Repository path.
+        #[arg(long, default_value = ".")]
+        repo: PathBuf,
+        /// Revision, branch, or ref at which the history walk starts.
+        #[arg(long)]
+        revision: String,
+        /// Maximum number of commits to inspect.
+        #[arg(long, default_value_t = 500)]
+        max_commits: usize,
+        /// Emit the complete machine-readable result as JSON.
+        #[arg(long)]
+        json: bool,
+    },
     /// Query callers of a symbol in one Java source graph.
     Callers {
         /// Fully qualified symbol name.
@@ -228,6 +244,9 @@ impl Cli {
             }
             Command::History { repo, revision, max_commits, json } => {
                 history_git_revision(&repo, &revision, max_commits, json)?;
+            }
+            Command::Ownership { repo, revision, max_commits, json } => {
+                ownership_git_revision(&repo, &revision, max_commits, json)?;
             }
             Command::Callers { symbol, file, project } => {
                 query_java(file.as_deref(), project.as_deref(), &symbol, QueryOperation::Callers)?;
@@ -605,6 +624,77 @@ fn history_git_revision(
     println!();
     println!("Historical signals are evidence only; they are not collision probabilities or BCS.");
     Ok(())
+}
+
+#[allow(clippy::too_many_lines)]
+fn ownership_git_revision(
+    repo_path: &Path,
+    revision_name: &str,
+    max_commits: usize,
+    json: bool,
+) -> Result<()> {
+    let repository =
+        GitRepository::discover(repo_path).map_err(|error| CliError::Command(error.to_string()))?;
+    let revision =
+        repository.resolve(revision_name).map_err(|error| CliError::Command(error.to_string()))?;
+    let signals = ResponsibilityAnalyzer::new()
+        .analyze(&repository, &revision, ResponsibilityOptions::new(max_commits))
+        .map_err(|error| CliError::Command(error.to_string()))?;
+    if json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&signals)
+                .map_err(|error| CliError::Command(error.to_string()))?
+        );
+        return Ok(());
+    }
+    println!("BranchSense Responsibility Analysis\n");
+    println!("Revision: {}@{}", revision_name, signals.analysis_revision());
+    println!("History: {} commits", signals.commits_analyzed());
+    println!("Scope: Java semantic symbols and repository files");
+    println!("Identity policy: commit author; trimmed name and case-folded email\n");
+    print_responsibility("Symbol responsibility", signals.symbol_responsibility());
+    print_responsibility("File responsibility", signals.file_responsibility());
+    println!("Contribution history is evidence, not ownership certainty.");
+    Ok(())
+}
+
+fn print_responsibility(title: &str, evidence: &[branchsense_ownership::ResponsibilityEvidence]) {
+    println!("{title}:");
+    for item in evidence.iter().take(20) {
+        let name = match item.entity() {
+            ResponsibilityEntity::Symbol(symbol) => symbol.qualified_name().to_owned(),
+            ResponsibilityEntity::File(path) => path.display().to_string(),
+        };
+        println!("\n  {name}");
+        for contribution in item.contributions() {
+            println!(
+                "    {} <{}>",
+                contribution.contributor().name(),
+                contribution.contributor().email()
+            );
+            println!(
+                "      {} commits ({:.1}%)",
+                contribution.commit_count(),
+                contribution.share() * 100.0
+            );
+        }
+        println!(
+            "    concentration: {:.1}% top contributor",
+            item.concentration().top_contributor_share() * 100.0
+        );
+        if !item.recent_contributors().is_empty() {
+            println!(
+                "    recent contributors: {}",
+                item.recent_contributors()
+                    .iter()
+                    .map(branchsense_ownership::Contributor::name)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            );
+        }
+    }
+    println!();
 }
 
 #[allow(clippy::too_many_lines)]

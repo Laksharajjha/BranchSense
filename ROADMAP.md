@@ -102,11 +102,20 @@
 - Git-backed `branchsense history` inspection.
 - Explicitly defer unreliable conflict reconstruction.
 
-## Next — Ownership and code responsibility signals
+## Milestone 15 — Ownership and code responsibility signals ✅
 
-- Investigate responsibility evidence separately from author activity.
-- Define ownership boundaries without treating frequent changes as ownership.
+- Bounded, read-only Git author contribution evidence.
+- Separate semantic symbol and document-level responsibility scopes.
+- Conservative author identity normalization and deterministic contribution shares.
+- Recent contributors, top-contributor concentration, and supporting commit provenance.
+- Git-backed `branchsense ownership` inspection with JSON output.
 - Keep historical signals and collision assessment independent.
+
+## Next — Responsibility and collision validation
+
+- Validate responsibility evidence against real repository histories.
+- Define how responsibility evidence can be consumed without implying ownership.
+- Keep BCS design separate until semantic and historical evidence are validated.
 
 ## Future milestones
 

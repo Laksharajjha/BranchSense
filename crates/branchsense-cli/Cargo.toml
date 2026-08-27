@@ -28,6 +28,7 @@ branchsense-history = { path = "../branchsense-history" }
 branchsense-index = { path = "../branchsense-index" }
 branchsense-impact = { path = "../branchsense-impact" }
 branchsense-overlap = { path = "../branchsense-overlap" }
+branchsense-ownership = { path = "../branchsense-ownership" }
 branchsense-java = { path = "../branchsense-java" }
 branchsense-language = { path = "../branchsense-language" }
 branchsense-parser = { path = "../branchsense-parser" }
