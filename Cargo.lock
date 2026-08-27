@@ -140,6 +140,7 @@ dependencies = [
  "branchsense-java",
  "branchsense-language",
  "branchsense-overlap",
+ "branchsense-ownership",
  "branchsense-parser",
  "branchsense-query",
  "branchsense-semantic",
@@ -314,6 +315,22 @@ dependencies = [
  "criterion",
  "serde",
  "tempfile",
+]
+
+[[package]]
+name = "branchsense-ownership"
+version = "0.1.0-alpha"
+dependencies = [
+ "branchsense-core",
+ "branchsense-diff",
+ "branchsense-git",
+ "branchsense-index",
+ "branchsense-semantic",
+ "criterion",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
 ]
 
 [[package]]

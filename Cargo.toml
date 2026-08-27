@@ -15,6 +15,7 @@ members = [
     "crates/branchsense-overlap",
     "crates/branchsense-collision",
     "crates/branchsense-history",
+    "crates/branchsense-ownership",
     "crates/branchsense-git",
 ]
 default-members = ["crates/branchsense-cli"]
