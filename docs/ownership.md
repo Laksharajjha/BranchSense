@@ -51,3 +51,10 @@ branchsense ownership --repo . --revision main --max-commits 500 --json
 Renames, moves, generated sources, and changes that cannot be mapped to a
 semantic source remain limitations. The analyzer does not merge identities
 based on similar names and does not reconstruct historical merge conflicts.
+# Privacy
+
+Responsibility analysis reports repository metadata; it does not prove personal
+ownership or expertise. The CLI accepts `--redact-identities` to replace
+contributor email addresses with `[redacted]` while preserving names, shares,
+counts, and commit provenance. Redaction is deterministic and applies to both
+human-readable and JSON output.

@@ -39,23 +39,8 @@ jobs:
       - name: Check documentation
         run: RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
 
-      - name: Compile Java benchmark
-        run: cargo bench -p branchsense-java --bench java_parse --no-run
-
-      - name: Compile Java extraction benchmark
-        run: cargo bench -p branchsense-extractor-java --bench java_extract --no-run
-
-      - name: Compile semantic graph benchmark
-        run: cargo bench -p branchsense-graph --bench graph_repository --no-run
-
-      - name: Compile semantic query benchmark
-        run: cargo bench -p branchsense-query --bench semantic_queries --no-run
-
-      - name: Compile repository indexing benchmark
-        run: cargo bench -p branchsense-index --bench repository_index --no-run
-
-      - name: Compile Git repository benchmark
-        run: cargo bench -p branchsense-git --bench git_repository --no-run
+      - name: Compile all benchmark targets
+        run: cargo bench --workspace --no-run
 
       - name: Build release binary
         run: cargo build --workspace --release

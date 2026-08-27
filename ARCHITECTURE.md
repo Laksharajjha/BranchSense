@@ -1,8 +1,16 @@
 # BranchSense Architecture
 
-**Status:** Foundation design  
+**Status:** Current implementation and target architecture
 **Audience:** Contributors, maintainers, extension authors, and integrators  
-**Scope:** Semantic project understanding and incremental graph maintenance. This document intentionally defines no feature implementation.
+**Scope:** The current semantic-analysis implementation and the target architecture for
+incremental graph maintenance. Sections describing services not present in the
+workspace are explicitly future design.
+
+> **Current implementation note:** The repository currently provides the
+> parser, Java adapter, semantic facts, graph, queries, indexing, Git
+> snapshots, diff, impact, overlap, collision evidence, history, ownership,
+> and CLI crates. Persistent storage, workspace scheduling, editor protocols,
+> and collaboration services remain target architecture.
 
 ## 1. Intent and design principles
 

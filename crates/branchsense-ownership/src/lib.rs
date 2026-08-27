@@ -25,7 +25,10 @@ use branchsense_git::{
     GitCommitId, GitError, GitRepository, GitRevision, GitSemanticSnapshot, GitSnapshotIndexer,
 };
 use branchsense_index::SemanticIndexSnapshot;
-use branchsense_semantic::{SemanticFact, SemanticFactRecord, SymbolDefinition, SymbolKind};
+use branchsense_semantic::{
+    AnalysisProvenance, EvidenceState, SemanticEntityIdentity, SemanticFact, SemanticFactRecord,
+    SymbolDefinition, SymbolKind,
+};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -35,6 +38,9 @@ pub enum ResponsibilityError {
     /// Read-only Git traversal or snapshot loading failed.
     #[error(transparent)]
     Git(#[from] GitError),
+    /// A canonical provenance identity could not be constructed.
+    #[error("responsibility identity construction failed: {0}")]
+    Identity(#[from] branchsense_core::ModelError),
     /// An analysis option is outside its valid range.
     #[error("responsibility option `{0}` must be greater than zero")]
     InvalidOption(&'static str),
@@ -114,6 +120,12 @@ impl Contributor {
     #[must_use]
     pub fn email(&self) -> &str {
         &self.email
+    }
+
+    /// Returns a copy with the email address replaced by a stable redaction.
+    #[must_use]
+    pub fn redacted(&self) -> Self {
+        Self { name: self.name.clone(), email: "[redacted]".into() }
     }
 }
 
@@ -228,6 +240,8 @@ pub struct ResponsibilitySignals {
     analysis_revision: GitCommitId,
     commits_analyzed: usize,
     recent_window: usize,
+    state: EvidenceState,
+    provenance: AnalysisProvenance,
     symbol_responsibility: Vec<ResponsibilityEvidence>,
     file_responsibility: Vec<ResponsibilityEvidence>,
 }
@@ -248,6 +262,16 @@ impl ResponsibilitySignals {
     pub const fn recent_window(&self) -> usize {
         self.recent_window
     }
+    /// Returns whether responsibility evidence was observed or inconclusive.
+    #[must_use]
+    pub const fn state(&self) -> EvidenceState {
+        self.state
+    }
+    /// Returns provenance sufficient to reproduce this analysis.
+    #[must_use]
+    pub fn provenance(&self) -> &AnalysisProvenance {
+        &self.provenance
+    }
     /// Returns symbol-level evidence only.
     #[must_use]
     pub fn symbol_responsibility(&self) -> &[ResponsibilityEvidence] {
@@ -257,6 +281,47 @@ impl ResponsibilitySignals {
     #[must_use]
     pub fn file_responsibility(&self) -> &[ResponsibilityEvidence] {
         &self.file_responsibility
+    }
+
+    /// Returns a copy with contributor email addresses redacted.
+    #[must_use]
+    pub fn redacted(&self) -> Self {
+        fn redact(items: &[ResponsibilityEvidence]) -> Vec<ResponsibilityEvidence> {
+            items
+                .iter()
+                .map(|item| ResponsibilityEvidence {
+                    entity: item.entity.clone(),
+                    scope: item.scope,
+                    attribution_basis: item.attribution_basis,
+                    contributions: item
+                        .contributions
+                        .iter()
+                        .map(|contribution| Contribution {
+                            contributor: contribution.contributor.redacted(),
+                            commit_count: contribution.commit_count,
+                            share: contribution.share,
+                        })
+                        .collect(),
+                    recent_contributors: item
+                        .recent_contributors
+                        .iter()
+                        .map(Contributor::redacted)
+                        .collect(),
+                    concentration: item.concentration.clone(),
+                    supporting_commits: item.supporting_commits.clone(),
+                })
+                .collect()
+        }
+
+        Self {
+            analysis_revision: self.analysis_revision.clone(),
+            commits_analyzed: self.commits_analyzed,
+            recent_window: self.recent_window,
+            state: self.state,
+            provenance: self.provenance.clone(),
+            symbol_responsibility: redact(&self.symbol_responsibility),
+            file_responsibility: redact(&self.file_responsibility),
+        }
     }
 }
 
@@ -375,6 +440,15 @@ impl ResponsibilityAnalyzer {
             analysis_revision: revision.commit_id().clone(),
             commits_analyzed: history.len(),
             recent_window: options.recent_commits,
+            state: if symbols.is_empty() && files.is_empty() {
+                EvidenceState::NoEvidence
+            } else {
+                EvidenceState::Observed
+            },
+            provenance: AnalysisProvenance::new()
+                .with_repository(repository.identity().id().clone())
+                .with_revision(branchsense_core::RevisionId::new(revision.commit_id().as_str())?)
+                .with_history_window(options.max_commits),
             symbol_responsibility: build_evidence(
                 symbols,
                 ResponsibilityScope::Symbol,
@@ -555,14 +629,12 @@ fn snapshot_symbols(snapshot: &SemanticIndexSnapshot) -> BTreeSet<SemanticEntity
 }
 
 fn entity_key(definition: &SymbolDefinition) -> SemanticEntityKey {
-    let name = definition
-        .qualified_name()
-        .map_or_else(|| definition.name().to_string(), ToString::to_string);
-    let qualified_name = name.split_once('(').map_or(name.as_str(), |(name, _)| name).to_owned();
+    let identity = SemanticEntityIdentity::from_definition(definition)
+        .expect("semantic definitions have valid identity fields");
     SemanticEntityKey {
-        document: PathBuf::from(definition.location().document_id().as_str()),
-        kind: definition.kind(),
-        qualified_name,
+        document: identity.document().to_path_buf(),
+        kind: identity.kind(),
+        qualified_name: identity.qualified_name().to_owned(),
     }
 }
 
@@ -587,6 +659,25 @@ mod tests {
         let second = Contributor::new("Alice Smith", "alice@company.com");
         assert_ne!(first, second);
         assert_eq!(first.email(), "alice@example.com");
+        assert_eq!(first.redacted().email(), "[redacted]");
+    }
+
+    #[test]
+    fn redaction_preserves_contribution_values() {
+        let contributor = Contributor::new("Alice", "alice@example.com");
+        let mut state = EntityState::default();
+        state.attribute(&contributor, 0, GitCommitId::new("a").expect("valid ID"));
+        let key = SemanticEntityKey {
+            document: PathBuf::from("A.java"),
+            kind: SymbolKind::Type,
+            qualified_name: "A".into(),
+        };
+        let evidence =
+            build_evidence(BTreeMap::from([(key, state)]), ResponsibilityScope::Symbol, 2)
+                .pop()
+                .expect("evidence");
+        assert_eq!(evidence.contributions()[0].commit_count(), 1);
+        assert!((evidence.contributions()[0].share() - 1.0).abs() < f64::EPSILON);
     }
 
     #[test]

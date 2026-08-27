@@ -22,7 +22,7 @@ pub struct SemanticGraph {
     nodes: BTreeMap<GraphNodeId, GraphNode>,
     edges: BTreeMap<GraphEdgeId, GraphEdge>,
     symbol_index: BTreeMap<SymbolId, GraphNodeId>,
-    qualified_index: BTreeMap<branchsense_core::QualifiedName, SymbolId>,
+    qualified_index: BTreeMap<branchsense_core::QualifiedName, BTreeSet<SymbolId>>,
     document_nodes: BTreeMap<DocumentId, BTreeSet<GraphNodeId>>,
     outgoing: BTreeMap<GraphNodeId, BTreeSet<GraphEdgeId>>,
     incoming: BTreeMap<GraphNodeId, BTreeSet<GraphEdgeId>>,
@@ -327,7 +327,10 @@ impl SemanticGraph {
         if let GraphNodeId::Symbol(symbol) = node_id {
             self.symbol_index.insert(symbol, GraphNodeId::Symbol(definition.id().clone()));
             if let Some(qualified_name) = definition.qualified_name() {
-                self.qualified_index.insert(qualified_name.clone(), definition.id().clone());
+                self.qualified_index
+                    .entry(qualified_name.clone())
+                    .or_default()
+                    .insert(definition.id().clone());
             }
         }
         Ok(())
@@ -447,12 +450,7 @@ impl SemanticGraph {
         provenance: Option<&FactProvenance>,
     ) -> Result<()> {
         let target = branchsense_core::QualifiedName::new(fact.target().as_str())?;
-        let (target_id, resolution) =
-            if let Some(symbol) = self.qualified_index.get(&target).cloned() {
-                (GraphNodeId::Symbol(symbol.clone()), ResolutionState::Resolved(symbol))
-            } else {
-                (self.ensure_unresolved(target.clone())?, ResolutionState::Unresolved)
-            };
+        let (target_id, resolution) = self.resolve_qualified_name(&target)?;
         self.add_edge(
             record,
             GraphNodeId::Document(fact.document().clone()),
@@ -461,6 +459,21 @@ impl SemanticGraph {
             Some(resolution),
             provenance,
         )
+    }
+
+    fn resolve_qualified_name(
+        &mut self,
+        target: &branchsense_core::QualifiedName,
+    ) -> Result<(GraphNodeId, ResolutionState)> {
+        let Some(candidates) = self.qualified_index.get(target) else {
+            return Ok((self.ensure_unresolved(target.clone())?, ResolutionState::Unresolved));
+        };
+        if candidates.len() == 1 {
+            let symbol = candidates.iter().next().expect("length checked").clone();
+            return Ok((GraphNodeId::Symbol(symbol.clone()), ResolutionState::Resolved(symbol)));
+        }
+        let candidates = candidates.iter().cloned().collect::<Vec<_>>();
+        Ok((self.ensure_unresolved(target.clone())?, ResolutionState::Ambiguous(candidates)))
     }
 
     fn add_annotation(
@@ -508,12 +521,18 @@ impl SemanticGraph {
         R: ReferenceTarget,
     {
         let resolution = match reference.resolution() {
-            ResolutionState::Unresolved => self
-                .qualified_index
-                .get(reference.name())
-                .map_or(ResolutionState::Unresolved, |symbol| {
-                    ResolutionState::Resolved(symbol.clone())
-                }),
+            ResolutionState::Unresolved => self.qualified_index.get(reference.name()).map_or(
+                ResolutionState::Unresolved,
+                |candidates| {
+                    if candidates.len() == 1 {
+                        ResolutionState::Resolved(
+                            candidates.iter().next().expect("length checked").clone(),
+                        )
+                    } else {
+                        ResolutionState::Ambiguous(candidates.iter().cloned().collect())
+                    }
+                },
+            ),
             resolution => resolution.clone(),
         };
         let target = match &resolution {

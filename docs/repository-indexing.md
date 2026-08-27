@@ -25,8 +25,8 @@ The current pre-Git identity is deliberately path-scoped:
   it to repository, workspace, project, and index revision identities.
 
 Path-scoped identities keep two separate filesystem checkouts from colliding.
-Git-backed repository identity is intentionally deferred until the Git
-discovery milestone.
+Git-backed repository identity is provided by the separate Git integration
+crate; this document describes the local indexing path.
 
 ## Lifecycle
 

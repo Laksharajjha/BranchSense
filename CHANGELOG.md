@@ -10,7 +10,7 @@ and releases use semantic versioning with an explicit alpha phase.
 ### Planned
 
 - Persistent semantic snapshots and richer Git provenance.
-- Collision prediction foundations and historical validation.
+- BCS prediction after evidence-contract hardening and validation.
 
 ### Added
 

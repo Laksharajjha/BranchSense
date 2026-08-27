@@ -256,11 +256,11 @@ Git understanding       ✅
         ↓
 Impact analysis         ✅
         ↓
-Branch overlap          NEXT
+BCS readiness hardening  CURRENT
         ↓
-Collision prediction    FUTURE
+BCS prediction           NEXT
         ↓
-IDE warning             FUTURE
+IDE warning              FUTURE
 ```
 
 The detailed status and sequencing are maintained in [ROADMAP.md](ROADMAP.md).

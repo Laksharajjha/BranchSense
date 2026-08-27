@@ -41,7 +41,7 @@ the public API.
 
 ## Future consumers
 
-A future query engine can consume immutable graph snapshots for definitions,
-references, callers, callees, containment, and impact analysis. Git
-intelligence can compare revision-pinned snapshots and apply document deltas.
-Neither subsystem is part of this milestone.
+The query engine consumes immutable graph snapshots for definitions, references,
+callers, callees, containment, and impact analysis. Git intelligence compares
+revision-pinned snapshots and applies document deltas. Persistence and more
+advanced copy-on-write storage remain future work.

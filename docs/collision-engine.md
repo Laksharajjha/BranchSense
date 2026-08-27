@@ -43,7 +43,8 @@ Redundant representations therefore explain the result without inflating it.
 
 These values are evidence strengths, not probabilities. They are intentionally
 small, explicit rules that can be evaluated and changed as empirical evidence
-arrives. No historical, ownership, hotness, or author signal is included.
+arrives. Historical and responsibility evidence are available as independent
+inputs for future BCS work; this crate does not combine them.
 
 ## Severity
 

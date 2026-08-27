@@ -33,6 +33,16 @@ fn definition(kind: SymbolKind, name: &str) -> SymbolDefinition {
         .with_qualified_name(QualifiedName::new(format!("billing.{name}")).expect("qualified name"))
 }
 
+fn definition_with_id(kind: SymbolKind, name: &str, id: &str) -> SymbolDefinition {
+    SymbolDefinition::new(
+        SymbolId::new(format!("symbol:{id}")).expect("symbol ID"),
+        kind,
+        Name::new(name).expect("name"),
+        location(),
+    )
+    .with_qualified_name(QualifiedName::new(format!("billing.{name}")).expect("qualified name"))
+}
+
 fn record(id: &str, fact: SemanticFact) -> SemanticFactRecord {
     SemanticFactRecord::new(FactId::new(format!("fact:{id}")).expect("fact ID"), fact)
 }
@@ -259,4 +269,45 @@ fn fact_delta_application_replaces_document_facts() {
     let updated = graph.apply_delta(&delta).expect("delta applies");
     assert!(updated.find_symbol(invoice.id()).is_some());
     assert_eq!(updated.revision_id().expect("revision").as_str(), "revision:two");
+}
+
+#[test]
+fn duplicate_qualified_names_remain_ambiguous_and_deterministic() {
+    let caller = definition(SymbolKind::Method, "caller");
+    let first = definition_with_id(SymbolKind::Method, "validate", "validate-one");
+    let second = definition_with_id(SymbolKind::Method, "validate", "validate-two");
+    let facts = vec![
+        record("caller", SemanticFact::Definition(caller.clone())),
+        record("first", SemanticFact::Definition(first.clone())),
+        record("second", SemanticFact::Definition(second.clone())),
+        record(
+            "reference",
+            SemanticFact::Reference(ReferenceFact::new(
+                caller.id().clone(),
+                SymbolReference::unresolved(
+                    QualifiedName::new("billing.validate").expect("qualified name"),
+                ),
+                ReferenceKind::Call,
+                location(),
+            )),
+        ),
+    ];
+
+    let graph = graph(facts);
+    let edge = graph
+        .outgoing_relationships(&GraphNodeId::Symbol(caller.id().clone()))
+        .into_iter()
+        .find(|edge| edge.kind() == EdgeKind::References)
+        .expect("reference edge");
+    assert_eq!(
+        edge.resolution(),
+        Some(&branchsense_semantic::ResolutionState::Ambiguous(vec![
+            first.id().clone(),
+            second.id().clone(),
+        ]))
+    );
+    assert_eq!(
+        edge.target(),
+        &GraphNodeId::Unresolved(QualifiedName::new("billing.validate").expect("qualified name"))
+    );
 }

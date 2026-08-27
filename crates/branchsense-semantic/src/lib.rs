@@ -69,22 +69,27 @@
 #![forbid(unsafe_code)]
 
 mod error;
+mod evidence;
 mod facts;
+mod identity;
 mod ids;
 mod lifecycle;
 mod provenance;
 mod values;
 
 pub use error::{Result, SemanticError};
+pub use evidence::{EvidenceCompleteness, EvidenceIdentity, EvidenceKind, EvidenceState};
 pub use facts::{
     AnnotationFact, CallFact, ContainsFact, DependencyFact, DocumentationFact, ImportFact,
     ParameterFact, ReferenceFact, ReturnTypeFact, SemanticFact, SemanticFactRecord,
     SymbolDefinition, TypeRelation, TypeRelationFact,
 };
+pub use identity::{IdentityMatch, SemanticEntityIdentity, canonical_identity, revision_local_id};
 pub use ids::FactId;
 pub use lifecycle::{DocumentFactSet, FactDelta, FactSnapshot, FactUpdate};
 pub use provenance::{
-    ConfigurationFingerprint, ContentHash, FactProvenance, ProducerIdentity, SnapshotIdentity,
+    AnalysisProvenance, ConfigurationFingerprint, ContentHash, FactProvenance, ProducerIdentity,
+    SnapshotIdentity,
 };
 pub use values::{
     Annotation, AnnotationArgument, AnnotationValue, DependencyKind, Documentation,

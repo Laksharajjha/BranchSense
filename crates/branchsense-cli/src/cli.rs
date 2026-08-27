@@ -144,6 +144,9 @@ enum Command {
         /// Emit the complete machine-readable result as JSON.
         #[arg(long)]
         json: bool,
+        /// Redact contributor email addresses from human and JSON output.
+        #[arg(long)]
+        redact_identities: bool,
     },
     /// Query callers of a symbol in one Java source graph.
     Callers {
@@ -245,8 +248,8 @@ impl Cli {
             Command::History { repo, revision, max_commits, json } => {
                 history_git_revision(&repo, &revision, max_commits, json)?;
             }
-            Command::Ownership { repo, revision, max_commits, json } => {
-                ownership_git_revision(&repo, &revision, max_commits, json)?;
+            Command::Ownership { repo, revision, max_commits, json, redact_identities } => {
+                ownership_git_revision(&repo, &revision, max_commits, json, redact_identities)?;
             }
             Command::Callers { symbol, file, project } => {
                 query_java(file.as_deref(), project.as_deref(), &symbol, QueryOperation::Callers)?;
@@ -632,6 +635,7 @@ fn ownership_git_revision(
     revision_name: &str,
     max_commits: usize,
     json: bool,
+    redact_identities: bool,
 ) -> Result<()> {
     let repository =
         GitRepository::discover(repo_path).map_err(|error| CliError::Command(error.to_string()))?;
@@ -640,6 +644,7 @@ fn ownership_git_revision(
     let signals = ResponsibilityAnalyzer::new()
         .analyze(&repository, &revision, ResponsibilityOptions::new(max_commits))
         .map_err(|error| CliError::Command(error.to_string()))?;
+    let signals = if redact_identities { signals.redacted() } else { signals };
     if json {
         println!(
             "{}",
@@ -652,7 +657,11 @@ fn ownership_git_revision(
     println!("Revision: {}@{}", revision_name, signals.analysis_revision());
     println!("History: {} commits", signals.commits_analyzed());
     println!("Scope: Java semantic symbols and repository files");
-    println!("Identity policy: commit author; trimmed name and case-folded email\n");
+    if redact_identities {
+        println!("Identity policy: commit author; contributor emails redacted\n");
+    } else {
+        println!("Identity policy: commit author; trimmed name and case-folded email\n");
+    }
     print_responsibility("Symbol responsibility", signals.symbol_responsibility());
     print_responsibility("File responsibility", signals.file_responsibility());
     println!("Contribution history is evidence, not ownership certainty.");

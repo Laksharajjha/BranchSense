@@ -203,6 +203,123 @@ pub struct SnapshotIdentity {
     revision_id: RevisionId,
 }
 
+/// Common provenance for an analysis result.
+///
+/// All revision fields are optional because not every analysis is Git-backed.
+/// The type is deliberately expressed in semantic IDs rather than Git types,
+/// allowing local, editor, and future server callers to share the contract.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct AnalysisProvenance {
+    repository_id: Option<RepositoryId>,
+    revision_id: Option<RevisionId>,
+    base_revision_id: Option<RevisionId>,
+    branch_a_revision_id: Option<RevisionId>,
+    branch_b_revision_id: Option<RevisionId>,
+    merge_base_revision_id: Option<RevisionId>,
+    configuration: Option<ConfigurationFingerprint>,
+    history_window: Option<usize>,
+    producer: Option<ProducerIdentity>,
+}
+
+impl AnalysisProvenance {
+    /// Creates empty provenance for a non-revision-pinned analysis.
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            repository_id: None,
+            revision_id: None,
+            base_revision_id: None,
+            branch_a_revision_id: None,
+            branch_b_revision_id: None,
+            merge_base_revision_id: None,
+            configuration: None,
+            history_window: None,
+            producer: None,
+        }
+    }
+
+    /// Sets the repository identity.
+    #[must_use]
+    pub fn with_repository(mut self, repository_id: RepositoryId) -> Self {
+        self.repository_id = Some(repository_id);
+        self
+    }
+
+    /// Sets the primary analysis revision.
+    #[must_use]
+    pub fn with_revision(mut self, revision_id: RevisionId) -> Self {
+        self.revision_id = Some(revision_id);
+        self
+    }
+
+    /// Sets the compared base revision.
+    #[must_use]
+    pub fn with_base_revision(mut self, revision_id: RevisionId) -> Self {
+        self.base_revision_id = Some(revision_id);
+        self
+    }
+
+    /// Sets branch revisions and their merge base.
+    #[must_use]
+    #[allow(clippy::similar_names)]
+    pub fn with_branches(
+        mut self,
+        branch_a_revision_id: RevisionId,
+        branch_b_revision_id: RevisionId,
+        merge_base_revision_id: RevisionId,
+    ) -> Self {
+        self.branch_a_revision_id = Some(branch_a_revision_id);
+        self.branch_b_revision_id = Some(branch_b_revision_id);
+        self.merge_base_revision_id = Some(merge_base_revision_id);
+        self
+    }
+
+    /// Sets the analysis configuration fingerprint.
+    #[must_use]
+    pub fn with_configuration(mut self, configuration: ConfigurationFingerprint) -> Self {
+        self.configuration = Some(configuration);
+        self
+    }
+
+    /// Sets the bounded history window.
+    #[must_use]
+    pub const fn with_history_window(mut self, history_window: usize) -> Self {
+        self.history_window = Some(history_window);
+        self
+    }
+
+    /// Sets the producing component identity.
+    #[must_use]
+    pub fn with_producer(mut self, producer: ProducerIdentity) -> Self {
+        self.producer = Some(producer);
+        self
+    }
+
+    /// Returns the repository identity, when available.
+    #[must_use]
+    pub fn repository_id(&self) -> Option<&RepositoryId> {
+        self.repository_id.as_ref()
+    }
+
+    /// Returns the primary revision, when available.
+    #[must_use]
+    pub fn revision_id(&self) -> Option<&RevisionId> {
+        self.revision_id.as_ref()
+    }
+
+    /// Returns the base revision, when available.
+    #[must_use]
+    pub fn base_revision_id(&self) -> Option<&RevisionId> {
+        self.base_revision_id.as_ref()
+    }
+
+    /// Returns the configured history window, when available.
+    #[must_use]
+    pub const fn history_window(&self) -> Option<usize> {
+        self.history_window
+    }
+}
+
 impl SnapshotIdentity {
     /// Creates a revision-pinned snapshot identity.
     #[must_use]

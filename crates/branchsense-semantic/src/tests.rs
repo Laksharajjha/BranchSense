@@ -4,9 +4,10 @@ use branchsense_core::{
 };
 
 use crate::{
-    ContentHash, Documentation, FactDelta, FactId, FactProvenance, FactSnapshot, ProducerIdentity,
-    ResolutionState, SemanticFact, SemanticFactRecord, SemanticFactSet, SnapshotIdentity,
-    SymbolDefinition, SymbolKind, SymbolReference,
+    AnalysisProvenance, ContentHash, Documentation, EvidenceCompleteness, EvidenceIdentity,
+    EvidenceKind, EvidenceState, FactDelta, FactId, FactProvenance, FactSnapshot, IdentityMatch,
+    ProducerIdentity, ResolutionState, SemanticEntityIdentity, SemanticFact, SemanticFactRecord,
+    SemanticFactSet, SnapshotIdentity, SymbolDefinition, SymbolKind, SymbolReference,
 };
 
 fn location() -> Location {
@@ -152,6 +153,43 @@ fn fact_delta_distinguishes_added_removed_updated_and_unchanged() {
 }
 
 #[test]
+fn canonical_identity_is_revision_independent_but_conservative() {
+    let identity = SemanticEntityIdentity::from_definition(&definition()).expect("identity");
+    assert_eq!(identity.document().to_str(), Some("src/Payment.java"));
+    assert_eq!(identity.kind(), SymbolKind::Type);
+    assert_eq!(identity.qualified_name(), "billing.Payment");
+
+    let encoded = serde_json::to_string(&identity).expect("serialization succeeds");
+    assert_eq!(
+        serde_json::from_str::<SemanticEntityIdentity>(&encoded).expect("deserialization succeeds"),
+        identity
+    );
+    assert!(matches!(IdentityMatch::Matched(identity), IdentityMatch::Matched(_)));
+}
+
+#[test]
+fn evidence_states_distinguish_empty_from_inconclusive_analysis() {
+    assert!(EvidenceState::Observed.is_observed());
+    assert!(EvidenceState::NoEvidence.is_no_evidence());
+    assert!(!EvidenceState::NoEvidence.is_inconclusive());
+    for state in [
+        EvidenceState::Unavailable,
+        EvidenceState::Unsupported,
+        EvidenceState::Unresolved,
+        EvidenceState::Ambiguous,
+        EvidenceState::Truncated,
+        EvidenceState::Failed,
+    ] {
+        assert!(state.is_inconclusive());
+        let encoded = serde_json::to_string(&state).expect("serialization succeeds");
+        assert_eq!(
+            serde_json::from_str::<EvidenceState>(&encoded).expect("deserialization succeeds"),
+            state
+        );
+    }
+}
+
+#[test]
 fn document_deletion_removes_every_fact() {
     let facts = SemanticFactSet::new(vec![record("one", "One"), record("two", "Two")]);
     let delta = FactDelta::delete(
@@ -182,6 +220,47 @@ fn references_keep_resolution_states_explicit() {
         crate::ExternalSymbolId::new("java:java.lang.String").expect("external ID"),
     );
     assert!(matches!(external.resolution(), ResolutionState::External(_)));
+}
+
+#[test]
+fn evidence_identity_and_provenance_are_deterministic() {
+    let evidence = EvidenceIdentity::new(
+        EvidenceKind::Derived,
+        "symbol:payment",
+        vec!["symbol:b".into(), "symbol:a".into(), "symbol:a".into()],
+    );
+    assert_eq!(evidence.related(), &["symbol:a".to_owned(), "symbol:b".to_owned()]);
+    assert_eq!(
+        serde_json::from_str::<EvidenceIdentity>(
+            &serde_json::to_string(&evidence).expect("serialization succeeds")
+        )
+        .expect("deserialization succeeds"),
+        evidence
+    );
+
+    let provenance = AnalysisProvenance::new()
+        .with_repository(RepositoryId::new("repo:one").expect("repository ID"))
+        .with_branches(
+            RevisionId::new("revision:a").expect("revision ID"),
+            RevisionId::new("revision:b").expect("revision ID"),
+            RevisionId::new("revision:base").expect("revision ID"),
+        )
+        .with_history_window(25);
+    assert_eq!(
+        serde_json::from_str::<AnalysisProvenance>(
+            &serde_json::to_string(&provenance).expect("serialization succeeds")
+        )
+        .expect("deserialization succeeds"),
+        provenance
+    );
+
+    let completeness = EvidenceCompleteness::new()
+        .with_semantic(EvidenceState::Observed)
+        .with_historical(EvidenceState::Truncated)
+        .with_responsibility(EvidenceState::Unavailable);
+    assert_eq!(completeness.semantic(), EvidenceState::Observed);
+    assert_eq!(completeness.historical(), EvidenceState::Truncated);
+    assert_eq!(completeness.responsibility(), EvidenceState::Unavailable);
 }
 
 #[test]
