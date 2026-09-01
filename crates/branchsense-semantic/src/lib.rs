@@ -78,7 +78,10 @@ mod provenance;
 mod values;
 
 pub use error::{Result, SemanticError};
-pub use evidence::{EvidenceCompleteness, EvidenceIdentity, EvidenceKind, EvidenceState};
+pub use evidence::{
+    EvidenceCompleteness, EvidenceEnvelope, EvidenceIdentity, EvidenceKind, EvidenceLink,
+    EvidenceRelation, EvidenceState,
+};
 pub use facts::{
     AnnotationFact, CallFact, ContainsFact, DependencyFact, DocumentationFact, ImportFact,
     ParameterFact, ReferenceFact, ReturnTypeFact, SemanticFact, SemanticFactRecord,

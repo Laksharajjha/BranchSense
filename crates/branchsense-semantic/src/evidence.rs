@@ -21,6 +21,55 @@ pub struct EvidenceIdentity {
     related: Vec<String>,
 }
 
+/// A relationship between two evidence observations.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub enum EvidenceRelation {
+    /// The first observation provides support for the second.
+    Supports,
+    /// The first observation was deterministically derived from the second.
+    DerivedFrom,
+    /// The first observation independently corroborates the second.
+    Corroborates,
+}
+
+/// A typed lineage link between evidence observations.
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct EvidenceLink {
+    from: EvidenceIdentity,
+    to: EvidenceIdentity,
+    relation: EvidenceRelation,
+}
+
+impl EvidenceLink {
+    /// Creates a deterministic relationship between two evidence identities.
+    #[must_use]
+    pub const fn new(
+        from: EvidenceIdentity,
+        to: EvidenceIdentity,
+        relation: EvidenceRelation,
+    ) -> Self {
+        Self { from, to, relation }
+    }
+
+    /// Returns the derived or supporting evidence identity.
+    #[must_use]
+    pub const fn from(&self) -> &EvidenceIdentity {
+        &self.from
+    }
+
+    /// Returns the source evidence identity.
+    #[must_use]
+    pub const fn to(&self) -> &EvidenceIdentity {
+        &self.to
+    }
+
+    /// Returns the lineage relationship.
+    #[must_use]
+    pub const fn relation(&self) -> EvidenceRelation {
+        self.relation
+    }
+}
+
 impl EvidenceIdentity {
     /// Creates a deterministic evidence identity.
     #[must_use]
@@ -28,6 +77,21 @@ impl EvidenceIdentity {
         related.sort();
         related.dedup();
         Self { kind, subject: subject.into(), related }
+    }
+
+    /// Creates an identity for a semantic entity.
+    #[must_use]
+    pub fn semantic(kind: EvidenceKind, identity: &crate::SemanticEntityIdentity) -> Self {
+        Self::new(
+            kind,
+            format!(
+                "{}:{:?}:{}",
+                identity.document().display(),
+                identity.kind(),
+                identity.qualified_name()
+            ),
+            Vec::new(),
+        )
     }
 
     /// Returns the evidence category.
@@ -76,6 +140,108 @@ pub enum EvidenceState {
     Truncated,
     /// Analysis failed before producing a trustworthy result.
     Failed,
+}
+
+/// Common metadata carried by an analytical result.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct EvidenceEnvelope {
+    state: EvidenceState,
+    completeness: EvidenceCompleteness,
+    provenance: crate::AnalysisProvenance,
+    identities: Vec<EvidenceIdentity>,
+    lineage: Vec<EvidenceLink>,
+}
+
+impl EvidenceEnvelope {
+    /// Creates an analytical envelope with explicit state and provenance.
+    #[must_use]
+    pub fn new(
+        state: EvidenceState,
+        completeness: EvidenceCompleteness,
+        provenance: crate::AnalysisProvenance,
+    ) -> Self {
+        Self { state, completeness, provenance, identities: Vec::new(), lineage: Vec::new() }
+    }
+
+    /// Creates a result envelope that preserves its parent's provenance and
+    /// evidence lineage while changing the result state.
+    #[must_use]
+    pub fn derived_from(
+        parent: &Self,
+        state: EvidenceState,
+        completeness: EvidenceCompleteness,
+    ) -> Self {
+        let mut envelope = Self::new(state, completeness, parent.provenance.clone());
+        for identity in &parent.identities {
+            envelope = envelope.with_identity(identity.clone());
+        }
+        for link in &parent.lineage {
+            envelope = envelope.with_link(link.clone());
+        }
+        envelope
+    }
+
+    /// Adds an evidence identity, preserving deterministic uniqueness.
+    #[must_use]
+    pub fn with_identity(mut self, identity: EvidenceIdentity) -> Self {
+        self.identities.push(identity);
+        self.identities.sort();
+        self.identities.dedup();
+        self
+    }
+
+    /// Replaces the result state while retaining its lineage metadata.
+    #[must_use]
+    pub const fn with_state(mut self, state: EvidenceState) -> Self {
+        self.state = state;
+        self
+    }
+
+    /// Replaces completeness while retaining identity and provenance metadata.
+    #[must_use]
+    pub const fn with_completeness(mut self, completeness: EvidenceCompleteness) -> Self {
+        self.completeness = completeness;
+        self
+    }
+
+    /// Adds a lineage link, preserving deterministic uniqueness.
+    #[must_use]
+    pub fn with_link(mut self, link: EvidenceLink) -> Self {
+        self.lineage.push(link);
+        self.lineage.sort();
+        self.lineage.dedup();
+        self
+    }
+
+    /// Returns the overall evidence state.
+    #[must_use]
+    pub const fn state(&self) -> EvidenceState {
+        self.state
+    }
+
+    /// Returns completeness for each evidence domain.
+    #[must_use]
+    pub const fn completeness(&self) -> &EvidenceCompleteness {
+        &self.completeness
+    }
+
+    /// Returns analysis provenance.
+    #[must_use]
+    pub const fn provenance(&self) -> &crate::AnalysisProvenance {
+        &self.provenance
+    }
+
+    /// Returns stable evidence identities carried by this result.
+    #[must_use]
+    pub fn identities(&self) -> &[EvidenceIdentity] {
+        &self.identities
+    }
+
+    /// Returns relationships between evidence observations.
+    #[must_use]
+    pub fn lineage(&self) -> &[EvidenceLink] {
+        &self.lineage
+    }
 }
 
 /// Completeness of the independent evidence domains used by future analysis.

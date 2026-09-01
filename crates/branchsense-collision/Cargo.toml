@@ -18,6 +18,7 @@ branchsense-core = { path = "../branchsense-core" }
 branchsense-diff = { path = "../branchsense-diff" }
 branchsense-impact = { path = "../branchsense-impact" }
 branchsense-overlap = { path = "../branchsense-overlap" }
+branchsense-semantic = { path = "../branchsense-semantic" }
 serde.workspace = true
 
 [lints]
