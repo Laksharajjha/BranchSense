@@ -59,13 +59,13 @@ fn reports_conservative_symbol_contribution_evidence() {
         .analyze(&repository, &revision, ResponsibilityOptions::new(3))
         .expect("analyze responsibility");
     let evidence = signals.symbol_responsibility().iter().find(|item| {
-        matches!(item.entity(), ResponsibilityEntity::Symbol(symbol) if symbol.qualified_name() == "Payment.process")
+        matches!(item.entity(), ResponsibilityEntity::Symbol(symbol) if symbol.qualified_name() == "Payment.process(long)")
     }).expect("symbol evidence");
-    assert_eq!(evidence.contributions().len(), 2);
+    assert_eq!(evidence.contributions().len(), 1);
     assert_eq!(evidence.contributions()[0].contributor().name(), "Bob");
-    assert!((evidence.contributions()[0].share() - 2.0 / 3.0).abs() < f64::EPSILON);
-    assert_eq!(evidence.concentration().active_contributors(), 2);
-    assert_eq!(evidence.supporting_commits().len(), 3);
+    assert!((evidence.contributions()[0].share() - 1.0).abs() < f64::EPSILON);
+    assert_eq!(evidence.concentration().active_contributors(), 1);
+    assert_eq!(evidence.supporting_commits().len(), 1);
     assert_eq!(
         signals,
         serde_json::from_slice(&serde_json::to_vec(&signals).expect("serialize"))

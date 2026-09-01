@@ -11,9 +11,10 @@ use crate::{SymbolDefinition, SymbolKind};
 ///
 /// The identity intentionally excludes opaque [`SymbolId`] values. It is a
 /// conservative correlation key: a path, kind, and qualified name must all
-/// agree before two declarations are considered the same entity. Renames,
-/// moves, package changes, and ambiguous overloads therefore do not silently
-/// acquire continuity.
+/// agree before two declarations are considered the same entity. Qualified
+/// names retain overload signatures when the semantic adapter provides them.
+/// Renames, moves, package changes, and ambiguous declarations therefore do
+/// not silently acquire continuity.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct SemanticEntityIdentity {
     document: PathBuf,
@@ -43,15 +44,10 @@ impl SemanticEntityIdentity {
             Some(name) => name.clone(),
             None => QualifiedName::new(definition.name().as_str())?,
         };
-        let qualified_name = qualified_name
-            .as_str()
-            .split_once('(')
-            .map_or(qualified_name.as_str(), |(name, _)| name)
-            .to_owned();
         Ok(Self::new(
             PathBuf::from(definition.location().document_id().as_str()),
             definition.kind(),
-            qualified_name,
+            qualified_name.as_str(),
         ))
     }
 

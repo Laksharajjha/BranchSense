@@ -26,8 +26,9 @@ use branchsense_git::{
 };
 use branchsense_index::SemanticIndexSnapshot;
 use branchsense_semantic::{
-    AnalysisProvenance, EvidenceState, SemanticEntityIdentity, SemanticFact, SemanticFactRecord,
-    SymbolDefinition, SymbolKind,
+    AnalysisProvenance, EvidenceCompleteness, EvidenceEnvelope, EvidenceIdentity, EvidenceKind,
+    EvidenceState, SemanticEntityIdentity, SemanticFact, SemanticFactRecord, SymbolDefinition,
+    SymbolKind,
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -240,8 +241,7 @@ pub struct ResponsibilitySignals {
     analysis_revision: GitCommitId,
     commits_analyzed: usize,
     recent_window: usize,
-    state: EvidenceState,
-    provenance: AnalysisProvenance,
+    evidence: EvidenceEnvelope,
     symbol_responsibility: Vec<ResponsibilityEvidence>,
     file_responsibility: Vec<ResponsibilityEvidence>,
 }
@@ -265,12 +265,18 @@ impl ResponsibilitySignals {
     /// Returns whether responsibility evidence was observed or inconclusive.
     #[must_use]
     pub const fn state(&self) -> EvidenceState {
-        self.state
+        self.evidence.state()
     }
     /// Returns provenance sufficient to reproduce this analysis.
     #[must_use]
     pub fn provenance(&self) -> &AnalysisProvenance {
-        &self.provenance
+        self.evidence.provenance()
+    }
+
+    /// Returns the complete evidence contract for this analysis.
+    #[must_use]
+    pub const fn evidence(&self) -> &EvidenceEnvelope {
+        &self.evidence
     }
     /// Returns symbol-level evidence only.
     #[must_use]
@@ -317,8 +323,7 @@ impl ResponsibilitySignals {
             analysis_revision: self.analysis_revision.clone(),
             commits_analyzed: self.commits_analyzed,
             recent_window: self.recent_window,
-            state: self.state,
-            provenance: self.provenance.clone(),
+            evidence: self.evidence.clone(),
             symbol_responsibility: redact(&self.symbol_responsibility),
             file_responsibility: redact(&self.file_responsibility),
         }
@@ -397,7 +402,9 @@ impl ResponsibilityAnalyzer {
         if options.recent_commits == 0 {
             return Err(ResponsibilityError::InvalidOption("recent_commits"));
         }
-        let history = repository.history(revision, options.max_commits)?;
+        let mut history = repository.history(revision, options.max_commits.saturating_add(1))?;
+        let truncated = history.len() > options.max_commits;
+        history.truncate(options.max_commits);
         let mut snapshots = BTreeMap::new();
         let mut symbols = BTreeMap::<SemanticEntityKey, EntityState>::new();
         let mut files = BTreeMap::<PathBuf, EntityState>::new();
@@ -436,19 +443,43 @@ impl ResponsibilityAnalyzer {
                 );
             }
         }
+        let state = if truncated {
+            EvidenceState::Truncated
+        } else if symbols.is_empty() && files.is_empty() {
+            EvidenceState::NoEvidence
+        } else {
+            EvidenceState::Observed
+        };
+        let provenance = AnalysisProvenance::new()
+            .with_repository(repository.identity().id().clone())
+            .with_revision(branchsense_core::RevisionId::new(revision.commit_id().as_str())?)
+            .with_history_window(options.max_commits);
+        let mut evidence = EvidenceEnvelope::new(
+            state,
+            EvidenceCompleteness::new().with_responsibility(state),
+            provenance,
+        );
+        for entity in symbols.keys() {
+            let identity = SemanticEntityIdentity::new(
+                entity.document().to_path_buf(),
+                entity.kind(),
+                entity.qualified_name(),
+            );
+            evidence = evidence
+                .with_identity(EvidenceIdentity::semantic(EvidenceKind::Primary, &identity));
+        }
+        for path in files.keys() {
+            evidence = evidence.with_identity(EvidenceIdentity::new(
+                EvidenceKind::Primary,
+                format!("file:{}", path.display()),
+                Vec::new(),
+            ));
+        }
         Ok(ResponsibilitySignals {
             analysis_revision: revision.commit_id().clone(),
             commits_analyzed: history.len(),
             recent_window: options.recent_commits,
-            state: if symbols.is_empty() && files.is_empty() {
-                EvidenceState::NoEvidence
-            } else {
-                EvidenceState::Observed
-            },
-            provenance: AnalysisProvenance::new()
-                .with_repository(repository.identity().id().clone())
-                .with_revision(branchsense_core::RevisionId::new(revision.commit_id().as_str())?)
-                .with_history_window(options.max_commits),
+            evidence,
             symbol_responsibility: build_evidence(
                 symbols,
                 ResponsibilityScope::Symbol,

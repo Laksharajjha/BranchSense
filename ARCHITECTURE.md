@@ -21,7 +21,9 @@ BranchSense is not an AI coding assistant. The core is deterministic, inspectabl
 The architecture is governed by these principles:
 
 1. **Local-first, deterministic core.** A repository can be analyzed without a network connection or remote service.
-2. **Incremental by default.** A change updates its semantic impact set, not the whole workspace.
+2. **Incremental at the document boundary.** A change replaces only the affected
+   document's facts; derived graph indexes may still be rebuilt in the current
+   implementation and are a deferred optimization.
 3. **Stable contracts, replaceable implementations.** Packages depend on narrow interfaces and capability declarations rather than concrete parser, storage, transport, or UI libraries.
 4. **Language-neutral model.** Language adapters translate source semantics into a shared graph vocabulary without reducing language-specific detail.
 5. **Single-writer graph ownership.** Graph mutation is serialized; query paths are lock-free or snapshot-based.

@@ -144,6 +144,13 @@ pub struct SemanticIndexSnapshot {
 }
 
 impl SemanticIndexSnapshot {
+    /// Returns a copy pinned to a caller-supplied revision identity.
+    #[must_use]
+    pub fn with_revision(mut self, revision_id: RevisionId) -> Self {
+        self.identity = self.identity.clone().with_revision(revision_id);
+        self
+    }
+
     /// Returns snapshot identity and provenance scope.
     #[must_use]
     pub fn identity(&self) -> &SnapshotIdentity {

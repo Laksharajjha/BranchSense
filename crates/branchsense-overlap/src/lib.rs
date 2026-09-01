@@ -17,7 +17,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use branchsense_core::SymbolId;
 use branchsense_diff::{ChangeKind, SemanticDiff};
 use branchsense_impact::{ImpactCause, ImpactKind, ImpactPath, ImpactRelationship, ImpactSet};
-use branchsense_semantic::{FactId, SemanticFact, SemanticFactRecord};
+use branchsense_semantic::{
+    AnalysisProvenance, EvidenceCompleteness, EvidenceEnvelope, EvidenceIdentity, EvidenceKind,
+    EvidenceLink, EvidenceRelation, EvidenceState, FactId, SemanticEntityIdentity, SemanticFact,
+    SemanticFactRecord,
+};
 use serde::{Deserialize, Serialize};
 
 /// The semantic relationship between two branch changes.
@@ -220,6 +224,8 @@ impl OverlapStatistics {
 pub struct OverlapSet {
     entries: Vec<OverlapEntry>,
     statistics: OverlapStatistics,
+    #[serde(default)]
+    evidence: EvidenceEnvelope,
 }
 
 impl OverlapSet {
@@ -232,6 +238,12 @@ impl OverlapSet {
     #[must_use]
     pub const fn statistics(&self) -> &OverlapStatistics {
         &self.statistics
+    }
+
+    /// Returns evidence state, provenance, and lineage for this overlap set.
+    #[must_use]
+    pub const fn evidence(&self) -> &EvidenceEnvelope {
+        &self.evidence
     }
     /// Returns whether no overlap was found.
     #[must_use]
@@ -429,8 +441,66 @@ impl SemanticOverlapAnalyzer {
         }
         statistics.overlaps = entries.len();
         statistics.truncated = truncated;
-        OverlapSet { entries, statistics }
+        let state = if statistics.truncated {
+            EvidenceState::Truncated
+        } else if entries.is_empty() {
+            EvidenceState::NoEvidence
+        } else {
+            EvidenceState::Observed
+        };
+        let mut provenance = AnalysisProvenance::new();
+        if let Some(repository) = diff_a
+            .evidence()
+            .provenance()
+            .repository_id()
+            .or_else(|| diff_b.evidence().provenance().repository_id())
+        {
+            provenance = provenance.with_repository(repository.clone());
+        }
+        if let (Some(branch_a), Some(branch_b), Some(base)) = (
+            diff_a.evidence().provenance().revision_id(),
+            diff_b.evidence().provenance().revision_id(),
+            diff_a.evidence().provenance().base_revision_id(),
+        ) {
+            provenance = provenance.with_base_revision(base.clone()).with_branches(
+                branch_a.clone(),
+                branch_b.clone(),
+                base.clone(),
+            );
+        }
+        let mut evidence = EvidenceEnvelope::new(
+            state,
+            EvidenceCompleteness::new().with_semantic(state),
+            provenance,
+        );
+        for entry in &entries {
+            let explanation = entry.explanation();
+            for symbol in [explanation.branch_a_changed(), explanation.branch_b_changed()] {
+                if let Some(definition) = changed_definition(diff_a, symbol)
+                    .or_else(|| changed_definition(diff_b, symbol))
+                {
+                    if let Ok(identity) = SemanticEntityIdentity::from_definition(definition) {
+                        let derived = EvidenceIdentity::semantic(EvidenceKind::Derived, &identity);
+                        let primary = EvidenceIdentity::semantic(EvidenceKind::Primary, &identity);
+                        evidence = evidence.with_identity(derived.clone()).with_link(
+                            EvidenceLink::new(derived, primary, EvidenceRelation::DerivedFrom),
+                        );
+                    }
+                }
+            }
+        }
+        OverlapSet { entries, statistics, evidence }
     }
+}
+
+fn changed_definition<'a>(
+    diff: &'a SemanticDiff,
+    id: &SymbolId,
+) -> Option<&'a branchsense_semantic::SymbolDefinition> {
+    diff.symbols()
+        .iter()
+        .find(|change| change.after_id().or(change.before_id()) == Some(id))
+        .and_then(|change| change.after().or(change.before()))
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]

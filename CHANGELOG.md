@@ -7,6 +7,16 @@ and releases use semantic versioning with an explicit alpha phase.
 
 ## [Unreleased]
 
+### Changed
+
+- Added a shared analytical evidence envelope with explicit state,
+  completeness, provenance, identities, and lineage.
+- Preserved overload signatures in canonical semantic identities.
+- Marked bounded history and responsibility analyses as truncated when their
+  configured commit window excludes additional history.
+- Added offline CLI integration coverage for branch analysis, history, and
+  responsibility redaction.
+
 ### Planned
 
 - Persistent semantic snapshots and richer Git provenance.

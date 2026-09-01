@@ -111,11 +111,13 @@
 - Git-backed `branchsense ownership` inspection with JSON output.
 - Keep historical signals and collision assessment independent.
 
-## Next — Responsibility and collision validation
+## Next — Evidence envelope integration
 
-- Validate responsibility evidence against real repository histories.
-- Define how responsibility evidence can be consumed without implying ownership.
-- Keep BCS design separate until semantic and historical evidence are validated.
+- Propagate one evidence envelope through diff, impact, overlap, collision,
+  history, and responsibility results.
+- Preserve overload-safe canonical identities and explicit evidence lineage.
+- Add adversarial identity, truncation, privacy, and CLI integration coverage.
+- Keep BCS design separate until evidence contracts are complete.
 
 ## Future milestones
 

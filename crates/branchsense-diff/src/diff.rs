@@ -6,9 +6,11 @@ use branchsense_core::SymbolId;
 use branchsense_git::GitSemanticSnapshot;
 use branchsense_index::SemanticIndexSnapshot;
 use branchsense_semantic::{
-    DependencyKind, FactId, ParameterFact, SemanticFact, SemanticFactRecord, SymbolDefinition,
-    SymbolKind, TypeRelation,
+    AnalysisProvenance, DependencyKind, EvidenceCompleteness, EvidenceEnvelope, EvidenceIdentity,
+    EvidenceKind, EvidenceState, FactId, ParameterFact, SemanticEntityIdentity, SemanticFact,
+    SemanticFactRecord, SymbolDefinition, SymbolKind, TypeRelation,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::change::{
     ChangeKind, DiffStatistics, DocumentChange, FactChange, RelationshipChange, RelationshipKind,
@@ -40,7 +42,43 @@ impl SemanticDiffer {
         let (facts, unchanged_facts, relationships) = compare_facts(before, after, &mut statistics);
         let symbols = compare_symbols(&before_records, &after_records, &mut statistics);
 
-        SemanticDiff { documents, symbols, facts, unchanged_facts, relationships, statistics }
+        let state = if documents.iter().any(|change| change.kind() != ChangeKind::Unchanged)
+            || !facts.is_empty()
+            || !relationships.is_empty()
+        {
+            EvidenceState::Observed
+        } else {
+            EvidenceState::NoEvidence
+        };
+        let provenance = AnalysisProvenance::new()
+            .with_repository(before.identity().repository_id().clone())
+            .with_base_revision(before.identity().revision_id().clone())
+            .with_revision(after.identity().revision_id().clone());
+        let mut evidence = EvidenceEnvelope::new(
+            state,
+            EvidenceCompleteness::new().with_semantic(state),
+            provenance,
+        );
+        for change in &symbols {
+            if let Some(definition) = change.after().or(change.before()) {
+                if let Ok(identity) = SemanticEntityIdentity::from_definition(definition) {
+                    evidence = evidence.with_identity(EvidenceIdentity::semantic(
+                        EvidenceKind::Primary,
+                        &identity,
+                    ));
+                }
+            }
+        }
+
+        SemanticDiff {
+            documents,
+            symbols,
+            facts,
+            unchanged_facts,
+            relationships,
+            statistics,
+            evidence,
+        }
     }
 
     /// Compares two Git-backed snapshots using the same semantic diff engine.
@@ -55,7 +93,7 @@ impl SemanticDiffer {
 }
 
 /// An immutable, deterministically ordered semantic change set.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SemanticDiff {
     documents: Vec<DocumentChange>,
     symbols: Vec<SymbolChange>,
@@ -63,6 +101,8 @@ pub struct SemanticDiff {
     unchanged_facts: Vec<FactId>,
     relationships: Vec<RelationshipChange>,
     statistics: DiffStatistics,
+    #[serde(default)]
+    evidence: EvidenceEnvelope,
 }
 
 impl SemanticDiff {
@@ -100,6 +140,12 @@ impl SemanticDiff {
     #[must_use]
     pub const fn statistics(&self) -> &DiffStatistics {
         &self.statistics
+    }
+
+    /// Returns evidence state, provenance, and lineage for this diff.
+    #[must_use]
+    pub const fn evidence(&self) -> &EvidenceEnvelope {
+        &self.evidence
     }
 
     /// Returns whether no semantic value changed.

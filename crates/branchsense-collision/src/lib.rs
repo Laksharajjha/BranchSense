@@ -20,6 +20,10 @@ use branchsense_core::SymbolId;
 use branchsense_diff::ChangeKind;
 use branchsense_impact::{ImpactKind, ImpactPath};
 use branchsense_overlap::{OverlapEvidence, OverlapExplanation, OverlapKind, OverlapSet};
+use branchsense_semantic::{
+    EvidenceCompleteness, EvidenceEnvelope, EvidenceIdentity, EvidenceKind, EvidenceLink,
+    EvidenceRelation, EvidenceState,
+};
 use serde::{Deserialize, Serialize};
 
 /// Strength band for semantic collision evidence.
@@ -231,6 +235,8 @@ pub struct CollisionAssessment {
     factors: Vec<CollisionFactor>,
     explanations: Vec<CollisionExplanation>,
     statistics: CollisionStatistics,
+    #[serde(default)]
+    evidence: EvidenceEnvelope,
 }
 
 impl CollisionAssessment {
@@ -258,6 +264,12 @@ impl CollisionAssessment {
     #[must_use]
     pub const fn statistics(&self) -> &CollisionStatistics {
         &self.statistics
+    }
+
+    /// Returns evidence state, provenance, and lineage for this assessment.
+    #[must_use]
+    pub const fn evidence(&self) -> &EvidenceEnvelope {
+        &self.evidence
     }
     /// Returns whether no semantic collision evidence was found.
     #[must_use]
@@ -336,12 +348,45 @@ impl CollisionAnalyzer {
             explanations: explanations.len(),
             truncated: overlaps.statistics().truncated(),
         };
+        let state = if overlaps.statistics().truncated() {
+            EvidenceState::Truncated
+        } else if factors.is_empty() {
+            EvidenceState::NoEvidence
+        } else {
+            EvidenceState::Observed
+        };
+        let evidence = EvidenceEnvelope::derived_from(
+            overlaps.evidence(),
+            state,
+            EvidenceCompleteness::new().with_semantic(state),
+        );
+        let mut evidence = evidence;
+        for factor in &factors {
+            let derived = EvidenceIdentity::new(
+                EvidenceKind::Derived,
+                format!("collision:{:?}", factor.kind()),
+                factor
+                    .evidence()
+                    .iter()
+                    .map(|item| format!("{}:{}", item.branch_a_changed(), item.branch_b_changed()))
+                    .collect(),
+            );
+            evidence = evidence.with_identity(derived.clone());
+            for parent in overlaps.evidence().identities() {
+                evidence = evidence.with_link(EvidenceLink::new(
+                    derived.clone(),
+                    parent.clone(),
+                    EvidenceRelation::DerivedFrom,
+                ));
+            }
+        }
         CollisionAssessment {
             severity: severity(score),
             evidence_score: score,
             factors,
             explanations,
             statistics,
+            evidence,
         }
     }
 }

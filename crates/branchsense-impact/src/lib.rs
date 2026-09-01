@@ -19,7 +19,10 @@ use branchsense_core::SymbolId;
 use branchsense_diff::{ChangeKind, SemanticDiff, SymbolChangeReason};
 use branchsense_graph::{EdgeKind, GraphNode, GraphNodeId, SemanticGraph};
 use branchsense_index::SemanticIndexSnapshot;
-use branchsense_semantic::{FactId, SemanticFact};
+use branchsense_semantic::{
+    EvidenceCompleteness, EvidenceEnvelope, EvidenceIdentity, EvidenceKind, EvidenceLink,
+    EvidenceRelation, EvidenceState, FactId, SemanticEntityIdentity, SemanticFact,
+};
 use serde::{Deserialize, Serialize};
 
 /// Relationship category that caused one impact.
@@ -249,6 +252,8 @@ impl ImpactStatistics {
 pub struct ImpactSet {
     entries: Vec<ImpactEntry>,
     statistics: ImpactStatistics,
+    #[serde(default)]
+    evidence: EvidenceEnvelope,
 }
 
 impl ImpactSet {
@@ -261,6 +266,12 @@ impl ImpactSet {
     #[must_use]
     pub const fn statistics(&self) -> &ImpactStatistics {
         &self.statistics
+    }
+
+    /// Returns evidence state, provenance, and lineage for this impact set.
+    #[must_use]
+    pub const fn evidence(&self) -> &EvidenceEnvelope {
+        &self.evidence
     }
     /// Returns whether no impacted declarations were found.
     #[must_use]
@@ -404,7 +415,8 @@ impl ImpactAnalyzer {
                 }
             }
         }
-        ImpactSet { entries, statistics }
+        let evidence = impact_evidence(diff, before, after, &entries, statistics.truncated);
+        ImpactSet { entries, statistics, evidence }
     }
 
     fn traverse(
@@ -466,6 +478,51 @@ impl ImpactAnalyzer {
             }
         }
     }
+}
+
+fn impact_evidence(
+    diff: &SemanticDiff,
+    before: &SemanticIndexSnapshot,
+    after: &SemanticIndexSnapshot,
+    entries: &[ImpactEntry],
+    truncated: bool,
+) -> EvidenceEnvelope {
+    let state = if truncated {
+        EvidenceState::Truncated
+    } else if entries.is_empty() {
+        EvidenceState::NoEvidence
+    } else {
+        EvidenceState::Observed
+    };
+    let semantic_state = if diff.evidence().state() == EvidenceState::NoEvidence {
+        EvidenceState::NoEvidence
+    } else {
+        diff.evidence().completeness().semantic()
+    };
+    let mut evidence = EvidenceEnvelope::derived_from(
+        diff.evidence(),
+        state,
+        EvidenceCompleteness::new().with_semantic(semantic_state),
+    );
+    for entry in entries {
+        let definition = after
+            .graph()
+            .find_symbol(entry.impacted_symbol())
+            .or_else(|| before.graph().find_symbol(entry.impacted_symbol()))
+            .and_then(GraphNode::definition);
+        if let Some(definition) = definition {
+            if let Ok(identity) = SemanticEntityIdentity::from_definition(definition) {
+                let derived = EvidenceIdentity::semantic(EvidenceKind::Derived, &identity);
+                let primary = EvidenceIdentity::semantic(EvidenceKind::Primary, &identity);
+                evidence = evidence.with_identity(derived.clone()).with_link(EvidenceLink::new(
+                    derived,
+                    primary,
+                    EvidenceRelation::DerivedFrom,
+                ));
+            }
+        }
+    }
+    evidence
 }
 
 struct Root<'a> {
