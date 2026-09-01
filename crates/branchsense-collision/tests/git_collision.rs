@@ -73,6 +73,10 @@ fn git_pipeline_produces_high_direct_collision_evidence() {
     let overlaps = SemanticOverlapAnalyzer::new().analyze(&diff_a, &impact_a, &diff_b, &impact_b);
     let assessment = CollisionAnalyzer::new().analyze(&overlaps);
 
+    assert_eq!(diff_a.evidence().provenance().repository_id(), Some(repository.identity().id()));
+    assert_eq!(impact_a.evidence().provenance(), diff_a.evidence().provenance());
+    assert_eq!(overlaps.evidence().provenance().branch_a_revision_id(), Some(branch_a.id()));
+    assert_eq!(assessment.evidence().provenance(), overlaps.evidence().provenance());
     assert!(assessment.evidence_score() >= 80);
     assert!(
         assessment
