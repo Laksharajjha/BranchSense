@@ -58,3 +58,18 @@ fact is not counted as several independent observations.
 This document defines contracts for future aggregation only. BCS does not yet
 exist in the repository. No score, probability, calibration, or BCS CLI is
 implemented here.
+
+## Analytical result envelope
+
+`EvidenceEnvelope` is the result-level contract used by semantic diffs,
+impact sets, branch overlap, collision assessments, historical signals, and
+responsibility signals. It carries result state, domain completeness, analysis
+provenance, stable evidence identities, and explicit lineage links.
+`EvidenceLink` distinguishes derived evidence from its source without claiming
+that two observations are the same observation.
+
+Semantic identities retain declaration signatures when the adapter provides
+them, so overloaded declarations are not collapsed merely because their
+display names match. Identity remains conservative: renames, moves, package
+changes, and unresolved or ambiguous references do not acquire continuity by
+guesswork.
