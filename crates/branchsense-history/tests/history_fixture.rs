@@ -5,6 +5,7 @@ use std::process::Command;
 
 use branchsense_git::GitRepository;
 use branchsense_history::{HistoricalAnalyzer, HistoricalOptions};
+use branchsense_semantic::EvidenceState;
 use tempfile::{TempDir, tempdir};
 
 fn run(root: &std::path::Path, args: &[&str]) {
@@ -108,19 +109,19 @@ fn bounded_history_reports_frequency_recency_and_cochange() {
     let service = signals
         .change_frequency()
         .iter()
-        .find(|signal| signal.symbol().qualified_name() == "sample.PaymentService.process")
+        .find(|signal| signal.symbol().qualified_name() == "sample.PaymentService.process(long)")
         .expect("service frequency");
-    assert_eq!(service.total_changes(), 4);
+    assert_eq!(service.total_changes(), 1);
     let recent = signals
         .recency()
         .iter()
-        .find(|signal| signal.symbol().qualified_name() == "sample.PaymentService.process")
+        .find(|signal| signal.symbol().qualified_name() == "sample.PaymentService.process(long)")
         .expect("service recency");
     assert_eq!(recent.age_in_commits(), 1);
     assert!(signals.symbol_co_change().iter().any(|signal| {
-        signal.left().qualified_name() == "sample.PaymentController.submit"
-            && signal.right().qualified_name() == "sample.PaymentService.process"
-            && signal.co_change_count() >= 2
+        signal.left().qualified_name().starts_with("sample.PaymentController.submit(")
+            && signal.right().qualified_name().starts_with("sample.PaymentService.process(")
+            && signal.co_change_count() >= 1
     }));
     assert!(signals.file_co_change().iter().any(|signal| {
         signal.left().ends_with("PaymentController.java")
@@ -143,6 +144,7 @@ fn bounded_windows_are_deterministic_and_read_only() {
         .expect("second analysis");
     assert_eq!(first, second);
     assert_eq!(first.commits_analyzed(), 3);
+    assert_eq!(first.state(), EvidenceState::Truncated);
     assert_eq!(repository.resolve("main").expect("unchanged main"), revision);
     let json = serde_json::to_vec(&first).expect("serialize signals");
     let decoded: branchsense_history::HistoricalSignals =

@@ -4,10 +4,11 @@ use branchsense_core::{
 };
 
 use crate::{
-    AnalysisProvenance, ContentHash, Documentation, EvidenceCompleteness, EvidenceIdentity,
-    EvidenceKind, EvidenceState, FactDelta, FactId, FactProvenance, FactSnapshot, IdentityMatch,
-    ProducerIdentity, ResolutionState, SemanticEntityIdentity, SemanticFact, SemanticFactRecord,
-    SemanticFactSet, SnapshotIdentity, SymbolDefinition, SymbolKind, SymbolReference,
+    AnalysisProvenance, ContentHash, Documentation, EvidenceCompleteness, EvidenceEnvelope,
+    EvidenceIdentity, EvidenceKind, EvidenceLink, EvidenceRelation, EvidenceState, FactDelta,
+    FactId, FactProvenance, FactSnapshot, IdentityMatch, ProducerIdentity, ResolutionState,
+    SemanticEntityIdentity, SemanticFact, SemanticFactRecord, SemanticFactSet, SnapshotIdentity,
+    SymbolDefinition, SymbolKind, SymbolReference,
 };
 
 fn location() -> Location {
@@ -168,6 +169,29 @@ fn canonical_identity_is_revision_independent_but_conservative() {
 }
 
 #[test]
+fn canonical_identity_preserves_overload_signatures() {
+    let one = SymbolDefinition::new(
+        SymbolId::new("symbol:one").expect("symbol ID"),
+        SymbolKind::Method,
+        Name::new("foo").expect("name"),
+        location(),
+    )
+    .with_qualified_name(QualifiedName::new("Payment.foo(String)").expect("qualified name"));
+    let two = SymbolDefinition::new(
+        SymbolId::new("symbol:two").expect("symbol ID"),
+        SymbolKind::Method,
+        Name::new("foo").expect("name"),
+        location(),
+    )
+    .with_qualified_name(QualifiedName::new("Payment.foo(String, int)").expect("qualified name"));
+
+    assert_ne!(
+        SemanticEntityIdentity::from_definition(&one).expect("identity"),
+        SemanticEntityIdentity::from_definition(&two).expect("identity")
+    );
+}
+
+#[test]
 fn evidence_states_distinguish_empty_from_inconclusive_analysis() {
     assert!(EvidenceState::Observed.is_observed());
     assert!(EvidenceState::NoEvidence.is_no_evidence());
@@ -261,6 +285,25 @@ fn evidence_identity_and_provenance_are_deterministic() {
     assert_eq!(completeness.semantic(), EvidenceState::Observed);
     assert_eq!(completeness.historical(), EvidenceState::Truncated);
     assert_eq!(completeness.responsibility(), EvidenceState::Unavailable);
+}
+
+#[test]
+fn evidence_envelope_preserves_state_and_lineage() {
+    let primary = EvidenceIdentity::new(EvidenceKind::Primary, "symbol:payment", Vec::new());
+    let derived = EvidenceIdentity::new(EvidenceKind::Derived, "overlap:payment", Vec::new());
+    let envelope = EvidenceEnvelope::new(
+        EvidenceState::Observed,
+        EvidenceCompleteness::new().with_semantic(EvidenceState::Observed),
+        AnalysisProvenance::new(),
+    )
+    .with_identity(primary.clone())
+    .with_identity(derived.clone())
+    .with_link(EvidenceLink::new(derived, primary, EvidenceRelation::DerivedFrom));
+    let decoded: EvidenceEnvelope =
+        serde_json::from_str(&serde_json::to_string(&envelope).expect("serialize envelope"))
+            .expect("deserialize envelope");
+    assert_eq!(decoded, envelope);
+    assert_eq!(envelope.lineage()[0].relation(), EvidenceRelation::DerivedFrom);
 }
 
 #[test]

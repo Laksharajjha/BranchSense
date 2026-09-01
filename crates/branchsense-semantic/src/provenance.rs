@@ -313,6 +313,24 @@ impl AnalysisProvenance {
         self.base_revision_id.as_ref()
     }
 
+    /// Returns branch A's revision, when this is a branch comparison.
+    #[must_use]
+    pub fn branch_a_revision_id(&self) -> Option<&RevisionId> {
+        self.branch_a_revision_id.as_ref()
+    }
+
+    /// Returns branch B's revision, when this is a branch comparison.
+    #[must_use]
+    pub fn branch_b_revision_id(&self) -> Option<&RevisionId> {
+        self.branch_b_revision_id.as_ref()
+    }
+
+    /// Returns the common merge-base revision, when this is a branch comparison.
+    #[must_use]
+    pub fn merge_base_revision_id(&self) -> Option<&RevisionId> {
+        self.merge_base_revision_id.as_ref()
+    }
+
     /// Returns the configured history window, when available.
     #[must_use]
     pub const fn history_window(&self) -> Option<usize> {
@@ -335,6 +353,14 @@ impl SnapshotIdentity {
     #[must_use]
     pub fn with_project(mut self, project_id: ProjectId) -> Self {
         self.project_id = Some(project_id);
+        self
+    }
+
+    /// Replaces the revision while retaining repository, workspace, and
+    /// project identity.
+    #[must_use]
+    pub fn with_revision(mut self, revision_id: RevisionId) -> Self {
+        self.revision_id = revision_id;
         self
     }
 

@@ -26,8 +26,8 @@ use branchsense_git::{
 };
 use branchsense_index::SemanticIndexSnapshot;
 use branchsense_semantic::{
-    AnalysisProvenance, EvidenceState, SemanticEntityIdentity, SemanticFact, SemanticFactRecord,
-    SymbolDefinition,
+    AnalysisProvenance, EvidenceCompleteness, EvidenceEnvelope, EvidenceIdentity, EvidenceKind,
+    EvidenceState, SemanticEntityIdentity, SemanticFact, SemanticFactRecord, SymbolDefinition,
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -203,8 +203,7 @@ impl FileCoChangeSignal {
 pub struct HistoricalSignals {
     analysis_revision: GitCommitId,
     commits_analyzed: usize,
-    state: EvidenceState,
-    provenance: AnalysisProvenance,
+    evidence: EvidenceEnvelope,
     change_frequency: Vec<ChangeFrequencySignal>,
     recency: Vec<RecencySignal>,
     symbol_co_change: Vec<CoChangeSignal>,
@@ -225,12 +224,18 @@ impl HistoricalSignals {
     /// Returns whether historical analysis was observed, empty, or inconclusive.
     #[must_use]
     pub const fn state(&self) -> EvidenceState {
-        self.state
+        self.evidence.state()
     }
     /// Returns provenance sufficient to reproduce the bounded analysis.
     #[must_use]
     pub fn provenance(&self) -> &AnalysisProvenance {
-        &self.provenance
+        self.evidence.provenance()
+    }
+
+    /// Returns the complete evidence contract for this analysis.
+    #[must_use]
+    pub const fn evidence(&self) -> &EvidenceEnvelope {
+        &self.evidence
     }
     /// Returns symbol frequency evidence in stable key order.
     #[must_use]
@@ -307,7 +312,9 @@ impl HistoricalAnalyzer {
         if options.max_commits == 0 {
             return Err(HistoricalError::InvalidOption("max_commits"));
         }
-        let history = repository.history(revision, options.max_commits)?;
+        let mut history = repository.history(revision, options.max_commits.saturating_add(1))?;
+        let truncated = history.len() > options.max_commits;
+        history.truncate(options.max_commits);
         let mut snapshots = BTreeMap::<GitCommitId, GitSemanticSnapshot>::new();
         let mut frequency = BTreeMap::<SymbolKey, FrequencyState>::new();
         let mut symbol_pairs = BTreeMap::<(SymbolKey, SymbolKey), PairState>::new();
@@ -358,21 +365,33 @@ impl HistoricalAnalyzer {
             .collect();
         let symbol_co_change = pair_signals(symbol_pairs, commits_analyzed);
         let file_co_change = file_pair_signals(file_pairs, commits_analyzed);
+        let state = if truncated {
+            EvidenceState::Truncated
+        } else if change_frequency.is_empty()
+            && symbol_co_change.is_empty()
+            && file_co_change.is_empty()
+        {
+            EvidenceState::NoEvidence
+        } else {
+            EvidenceState::Observed
+        };
+        let provenance = AnalysisProvenance::new()
+            .with_repository(repository.identity().id().clone())
+            .with_revision(branchsense_core::RevisionId::new(revision.commit_id().as_str())?)
+            .with_history_window(options.max_commits);
+        let mut evidence = EvidenceEnvelope::new(
+            state,
+            EvidenceCompleteness::new().with_historical(state),
+            provenance,
+        );
+        for signal in &change_frequency {
+            evidence = evidence
+                .with_identity(EvidenceIdentity::semantic(EvidenceKind::Primary, signal.symbol()));
+        }
         Ok(HistoricalSignals {
             analysis_revision: revision.commit_id().clone(),
             commits_analyzed,
-            state: if change_frequency.is_empty()
-                && symbol_co_change.is_empty()
-                && file_co_change.is_empty()
-            {
-                EvidenceState::NoEvidence
-            } else {
-                EvidenceState::Observed
-            },
-            provenance: AnalysisProvenance::new()
-                .with_repository(repository.identity().id().clone())
-                .with_revision(branchsense_core::RevisionId::new(revision.commit_id().as_str())?)
-                .with_history_window(options.max_commits),
+            evidence,
             change_frequency,
             recency,
             symbol_co_change,
@@ -466,8 +485,6 @@ fn symbol_key(definition: &SymbolDefinition) -> SymbolKey {
     let qualified_name = definition
         .qualified_name()
         .map_or_else(|| definition.name().to_string(), ToString::to_string);
-    let qualified_name =
-        qualified_name.split_once('(').map_or(qualified_name.as_str(), |(name, _)| name).to_owned();
     SemanticEntityIdentity::new(
         PathBuf::from(definition.location().document_id().as_str()),
         definition.kind(),

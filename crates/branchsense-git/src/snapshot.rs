@@ -79,6 +79,7 @@ impl GitSnapshotIndexer {
             .index_sources(identity, sources, previous)
             .map_err(GitError::Index)?;
         let (semantic, report) = result.into_parts();
+        let semantic = semantic.with_revision(revision.id().clone());
         Ok(GitSemanticSnapshot::new(repository.clone(), revision.clone(), semantic, report))
     }
 }
