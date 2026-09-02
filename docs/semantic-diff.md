@@ -31,8 +31,8 @@ respective collections with `ChangeKind::Unchanged`.
 
 Stable symbol IDs are used whenever they remain stable. Java callable IDs
 currently include the signature, so the differ conservatively pairs an old and
-new callable only when their document, kind, and signature-independent
-qualified name form an unambiguous anchor. It then reports structured reasons
+new callable only when their document, kind, and adapter-supplied qualified
+name, including overload signatures, form an unambiguous anchor. It then reports structured reasons
 such as `MethodSignatureChanged`, `ParameterAdded`, `ParameterRemoved`,
 `ParameterTypeChanged`, `ReturnTypeChanged`, `VisibilityChanged`,
 `ModifierChanged`, and `DocumentationChanged`.

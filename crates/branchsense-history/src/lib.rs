@@ -7,11 +7,11 @@
 //! collision risk, infer ownership, reconstruct conflicts, or implement BCS.
 //!
 //! Symbol identity is revision-safe by design. Git-backed Java symbol IDs
-//! include a document path and may also include a signature that changes over
-//! time, so this crate does not compare opaque [`SymbolId`] values across
-//! revisions. It derives a best-effort [`SymbolKey`] from document path,
-//! semantic kind, and signature-independent qualified name. Ambiguous or
-//! renamed declarations are not silently treated as the same entity.
+//! include a document path and may also include a signature, so this crate does
+//! not compare opaque [`SymbolId`] values across revisions. It derives a
+//! best-effort [`SymbolKey`] from document path, semantic kind, and the
+//! adapter-supplied qualified name, retaining overload signatures. Ambiguous
+//! or renamed declarations are not silently treated as the same entity.
 #![forbid(unsafe_code)]
 
 use std::{

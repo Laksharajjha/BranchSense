@@ -69,7 +69,8 @@ impl SemanticEntityKey {
     pub const fn kind(&self) -> SymbolKind {
         self.kind
     }
-    /// Returns the signature-independent qualified name.
+    /// Returns the adapter-supplied qualified name, including overload data
+    /// when available.
     #[must_use]
     pub fn qualified_name(&self) -> &str {
         &self.qualified_name
