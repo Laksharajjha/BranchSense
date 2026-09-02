@@ -49,7 +49,9 @@ impl SemanticDiffer {
             EvidenceState::Observed
         } else {
             EvidenceState::NoEvidence
-        };
+        }
+        .combine(snapshot_resolution_state(before))
+        .combine(snapshot_resolution_state(after));
         let provenance = AnalysisProvenance::new()
             .with_repository(before.identity().repository_id().clone())
             .with_base_revision(before.identity().revision_id().clone())
@@ -90,6 +92,21 @@ impl SemanticDiffer {
     ) -> SemanticDiff {
         self.diff(before.semantic(), after.semantic())
     }
+}
+
+fn snapshot_resolution_state(snapshot: &SemanticIndexSnapshot) -> EvidenceState {
+    snapshot.graph().edges().filter_map(|edge| edge.resolution()).fold(
+        EvidenceState::NoEvidence,
+        |state, resolution| match resolution {
+            branchsense_semantic::ResolutionState::Ambiguous(_) => {
+                state.combine(EvidenceState::Ambiguous)
+            }
+            branchsense_semantic::ResolutionState::Unresolved => {
+                state.combine(EvidenceState::Unresolved)
+            }
+            _ => state,
+        },
+    )
 }
 
 /// An immutable, deterministically ordered semantic change set.

@@ -2,6 +2,8 @@ use std::fs;
 
 use branchsense_index::{IndexOptions, RepositoryIndex};
 
+use branchsense_semantic::EvidenceState;
+
 use crate::{ChangeKind, SemanticDiffer, SymbolChangeReason};
 
 fn repository(source: &str) -> tempfile::TempDir {
@@ -148,4 +150,22 @@ fn type_relations_are_classified() {
     assert!(service.reasons().contains(&SymbolChangeReason::SuperclassChanged));
     assert!(service.reasons().contains(&SymbolChangeReason::InterfaceAdded));
     assert!(service.reasons().contains(&SymbolChangeReason::InterfaceRemoved));
+}
+
+#[test]
+fn unresolved_reference_state_is_preserved_by_diff() {
+    let root = repository(
+        "package payment; public class PaymentService { public void process() { missing(); } }",
+    );
+    let before = snapshot(&root);
+    fs::write(
+        root.path().join("src/PaymentService.java"),
+        "package payment; public class PaymentService { public void process() { missing(); changed(); } }",
+    )
+    .expect("changed source");
+    let after = snapshot(&root);
+    let diff = SemanticDiffer::new().diff(&before, &after);
+
+    assert_eq!(diff.evidence().state(), EvidenceState::Unresolved);
+    assert_eq!(diff.evidence().completeness().semantic(), EvidenceState::Unresolved);
 }

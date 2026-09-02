@@ -8,8 +8,9 @@
 //! movement is ignored, while changes to declarations, signatures, references,
 //! and other emitted semantic facts are retained. Symbol matching is
 //! conservative: a method whose identity includes a changed signature can be
-//! paired with its old declaration only when its kind and signature-independent
-//! qualified name provide an unambiguous match. Rename detection is not
+//! paired with its old declaration only when its kind and adapter-supplied
+//! qualified name, including overload signatures, provide an unambiguous
+//! match. Rename detection is not
 //! attempted.
 //!
 //! Snapshot persistence and a user-facing `diff` command are intentionally

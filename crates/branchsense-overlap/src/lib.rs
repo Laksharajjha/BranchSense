@@ -447,7 +447,9 @@ impl SemanticOverlapAnalyzer {
             EvidenceState::NoEvidence
         } else {
             EvidenceState::Observed
-        };
+        }
+        .combine(diff_a.evidence().state())
+        .combine(diff_b.evidence().state());
         let mut provenance = AnalysisProvenance::new();
         if let Some(repository) = diff_a
             .evidence()

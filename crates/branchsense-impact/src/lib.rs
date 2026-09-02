@@ -499,6 +499,7 @@ fn impact_evidence(
     } else {
         diff.evidence().completeness().semantic()
     };
+    let state = state.combine(semantic_state);
     let mut evidence = EvidenceEnvelope::derived_from(
         diff.evidence(),
         state,
