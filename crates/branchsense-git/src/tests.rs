@@ -1,6 +1,7 @@
 use std::{fs, process::Command};
 
 use super::{GitRefKind, GitRepository, GitSnapshotIndexer, MergeBaseResult};
+use branchsense_index::IndexStage;
 
 fn repository() -> tempfile::TempDir {
     let root = tempfile::tempdir().expect("temporary directory");
@@ -89,4 +90,33 @@ fn indexes_a_commit_tree_without_checkout() {
         fs::read_to_string(root.path().join("src/Hello.java")).expect("working-tree source"),
         "class Hello { void greet() {} }\n"
     );
+}
+
+#[test]
+fn invalid_utf8_source_is_diagnostic_and_does_not_abort_valid_sources() {
+    let root = repository();
+    fs::write(root.path().join("src/Invalid.java"), b"class Invalid { \xFF }\n")
+        .expect("invalid source");
+    run(root.path(), &["add", "src/Invalid.java"]);
+    run(root.path(), &["commit", "-m", "invalid source"]);
+
+    let git = GitRepository::discover(root.path()).expect("repository");
+    let revision = git.head().expect("head");
+    let load = git.java_sources_with_diagnostics(&revision).expect("source load");
+    assert_eq!(load.sources().len(), 1);
+    assert_eq!(load.diagnostics().len(), 1);
+    assert_eq!(load.diagnostics()[0].path(), std::path::Path::new("src/Invalid.java"));
+    let encoded = serde_json::to_string(load.diagnostics()).expect("diagnostic JSON");
+    assert_eq!(encoded, serde_json::to_string(load.diagnostics()).expect("stable JSON"));
+
+    let snapshot = GitSnapshotIndexer::default()
+        .index_revision(&git, &revision, None)
+        .expect("valid files remain analyzable");
+    assert_eq!(snapshot.report().indexed(), 1);
+    assert_eq!(snapshot.report().skipped(), 1);
+    assert!(snapshot.report().diagnostics().iter().any(|diagnostic| {
+        diagnostic.path() == std::path::Path::new("src/Invalid.java")
+            && diagnostic.stage() == IndexStage::Read
+    }));
+    assert_eq!(snapshot.semantic().graph().statistics().documents(), 1);
 }
