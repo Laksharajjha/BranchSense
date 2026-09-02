@@ -11,6 +11,52 @@ use serde::{Deserialize, Serialize};
 
 use crate::{GitCommitId, GitError, GitRevision, Result};
 
+/// A source blob that could not be decoded for semantic analysis.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct GitSourceDiagnostic {
+    path: PathBuf,
+    message: String,
+}
+
+impl GitSourceDiagnostic {
+    fn new(path: PathBuf, message: impl Into<String>) -> Self {
+        Self { path, message: message.into() }
+    }
+
+    /// Returns the repository-relative source path.
+    #[must_use]
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+
+    /// Returns the decoding diagnostic.
+    #[must_use]
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+}
+
+/// UTF-8 Java sources and per-file source loading diagnostics.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct GitSourceLoad {
+    sources: BTreeMap<PathBuf, String>,
+    diagnostics: Vec<GitSourceDiagnostic>,
+}
+
+impl GitSourceLoad {
+    /// Returns valid Java sources in deterministic path order.
+    #[must_use]
+    pub const fn sources(&self) -> &BTreeMap<PathBuf, String> {
+        &self.sources
+    }
+
+    /// Returns source loading diagnostics in deterministic traversal order.
+    #[must_use]
+    pub fn diagnostics(&self) -> &[GitSourceDiagnostic] {
+        &self.diagnostics
+    }
+}
+
 /// The kind of Git reference.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum GitRefKind {
@@ -241,19 +287,33 @@ impl GitRepository {
     /// Reads Java source blobs from a commit tree without changing the
     /// working tree or Git index.
     ///
+    /// Invalid UTF-8 Java blobs are omitted. Call
+    /// [`Self::java_sources_with_diagnostics`] when diagnostics are required.
+    ///
     /// # Errors
     ///
-    /// Returns an error when the tree or a Java blob cannot be read, or when a
-    /// Java blob is not valid UTF-8.
+    /// Returns an error when the tree or a valid Java blob cannot be read.
     pub fn java_sources(&self, revision: &GitRevision) -> Result<BTreeMap<PathBuf, String>> {
+        Ok(self.java_sources_with_diagnostics(revision)?.sources)
+    }
+
+    /// Reads Java source blobs while retaining per-file decoding diagnostics.
+    ///
+    /// Invalid bytes are never replaced or passed to a parser. Valid files
+    /// remain available for repository analysis.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when Git cannot read the tree or a blob.
+    pub fn java_sources_with_diagnostics(&self, revision: &GitRevision) -> Result<GitSourceLoad> {
         let tree_id = revision
             .tree_id()
             .as_str()
             .parse::<gix::ObjectId>()
             .map_err(|error| GitError::InvalidObjectId(error.to_string()))?;
-        let mut sources = BTreeMap::new();
-        self.collect_java_sources(tree_id, Path::new(""), &mut sources)?;
-        Ok(sources)
+        let mut load = GitSourceLoad::default();
+        self.collect_java_sources(tree_id, Path::new(""), &mut load)?;
+        Ok(load)
     }
 
     fn revision_from_id(&self, id: impl Into<gix::ObjectId>) -> Result<GitRevision> {
@@ -289,7 +349,7 @@ impl GitRepository {
         &self,
         tree_id: gix::ObjectId,
         prefix: &Path,
-        sources: &mut BTreeMap<PathBuf, String>,
+        load: &mut GitSourceLoad,
     ) -> Result<()> {
         let tree = self.repository.find_tree(tree_id).map_err(GitError::operation)?;
         for entry in tree.iter() {
@@ -297,7 +357,7 @@ impl GitRepository {
             let filename = entry.filename().to_string();
             let path = prefix.join(filename);
             if entry.inner.mode.is_tree() {
-                self.collect_java_sources(entry.inner.oid.to_owned(), &path, sources)?;
+                self.collect_java_sources(entry.inner.oid.to_owned(), &path, load)?;
             } else if entry.inner.mode.is_blob()
                 && path.extension().is_some_and(|ext| ext == "java")
             {
@@ -305,9 +365,17 @@ impl GitRepository {
                     .repository
                     .find_blob(entry.inner.oid.to_owned())
                     .map_err(GitError::operation)?;
-                let source = String::from_utf8(blob.data.clone())
-                    .map_err(|error| GitError::InvalidMetadata(error.to_string()))?;
-                sources.insert(path, source);
+                match String::from_utf8(blob.data.clone()) {
+                    Ok(source) => {
+                        load.sources.insert(path, source);
+                    }
+                    Err(error) => {
+                        load.diagnostics.push(GitSourceDiagnostic::new(
+                            path,
+                            format!("source is not valid UTF-8: {error}"),
+                        ));
+                    }
+                }
             }
         }
         Ok(())

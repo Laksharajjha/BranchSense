@@ -41,7 +41,8 @@ Each pair is counted at most once per commit and includes supporting revision
 IDs. Symbol matching uses a best-effort key made from:
 
 ```text
-repository-relative document path + symbol kind + signature-independent qualified name
+repository-relative document path + symbol kind + adapter-supplied qualified name
+(including overload signatures when available)
 ```
 
 This avoids assuming that revision-specific opaque `SymbolId` values are

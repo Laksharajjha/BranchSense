@@ -354,7 +354,8 @@ impl CollisionAnalyzer {
             EvidenceState::NoEvidence
         } else {
             EvidenceState::Observed
-        };
+        }
+        .combine(overlaps.evidence().state());
         let evidence = EvidenceEnvelope::derived_from(
             overlaps.evidence(),
             state,

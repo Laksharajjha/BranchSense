@@ -52,6 +52,7 @@ The diff command builds both snapshots in memory and delegates comparison to
 Git operations are read-only: no checkout, reset, merge, commit, branch
 creation, ref update, index write, or working-tree write is performed. The
 first implementation indexes Java blobs only. Binary or invalid UTF-8 Java
-blobs are reported as Git metadata errors. Persistent snapshots, Git-backed
+blobs are skipped with a per-file `Read` diagnostic while valid files remain
+available for analysis; bytes are never lossily decoded. Persistent snapshots, Git-backed
 fact provenance inside the existing index snapshot, and classpath-aware
 resolution remain future work.

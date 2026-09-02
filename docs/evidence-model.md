@@ -32,15 +32,16 @@ partial analysis without interpreting absent records as negative evidence.
 ## Identity and provenance
 
 `SemanticEntityIdentity` correlates declarations conservatively across
-revisions using repository-relative document path, symbol kind, and a
-signature-independent qualified name. Opaque `SymbolId` values remain local to
-one revision. `AnalysisProvenance` records repository and revision context,
+revisions using repository-relative document path, symbol kind, and the
+adapter-supplied qualified name, including overload signatures. Opaque
+`SymbolId` values remain local to one revision. `AnalysisProvenance` records repository and revision context,
 branch merge-base context, configuration, bounded history windows, and producer
 versions without depending on Git implementation types.
 
 `EvidenceIdentity` identifies the underlying causal subject and related
-entities. Related values are sorted and deduplicated for deterministic
-cross-subsystem comparison.
+entities. The shared `EvidenceLedger` deduplicates identical identities and
+exact lineage links with deterministic ordering. It never merges independent
+observations merely because they name the same subject.
 
 ## Evidence relationships
 
@@ -50,8 +51,14 @@ cross-subsystem comparison.
 
 For example, a changed method is primary evidence; a direct caller path is
 supporting evidence; a branch overlap derived from those paths is derived
-evidence. Future aggregation must preserve these relationships so one causal
-fact is not counted as several independent observations.
+evidence; an independent historical co-change can corroborate the method.
+Future aggregation must preserve these relationships so one causal fact is not
+counted as several independent observations while independent observations
+remain visible.
+
+The link direction is `from` observation to `to` source observation. Thus a
+derived impact links to its changed-symbol evidence with `DerivedFrom`, while
+historical evidence links to a semantic observation with `Corroborates`.
 
 ## Scope
 

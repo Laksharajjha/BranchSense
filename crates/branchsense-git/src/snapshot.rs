@@ -2,7 +2,8 @@
 
 use branchsense_core::{ProjectId, WorkspaceId};
 use branchsense_index::{
-    IndexOptions, IndexReport, RepositoryIdentity, RepositoryIndex, SemanticIndexSnapshot,
+    IndexDiagnostic, IndexOptions, IndexReport, IndexStage, RepositoryIdentity, RepositoryIndex,
+    SemanticIndexSnapshot,
 };
 
 use crate::{GitError, GitRepository, GitRevision, Result};
@@ -73,10 +74,26 @@ impl GitSnapshotIndexer {
         revision: &GitRevision,
         previous: Option<&SemanticIndexSnapshot>,
     ) -> Result<GitSemanticSnapshot> {
-        let sources = repository.java_sources(revision)?;
+        let source_load = repository.java_sources_with_diagnostics(revision)?;
         let identity = semantic_identity(repository)?;
+        let source_diagnostics = source_load
+            .diagnostics()
+            .iter()
+            .map(|diagnostic| {
+                IndexDiagnostic::new(
+                    diagnostic.path().to_path_buf(),
+                    IndexStage::Read,
+                    diagnostic.message(),
+                )
+            })
+            .collect();
         let result = RepositoryIndex::new(self.options.clone())
-            .index_sources(identity, sources, previous)
+            .index_sources_with_diagnostics(
+                identity,
+                source_load.sources().clone(),
+                source_diagnostics,
+                previous,
+            )
             .map_err(GitError::Index)?;
         let (semantic, report) = result.into_parts();
         let semantic = semantic.with_revision(revision.id().clone());

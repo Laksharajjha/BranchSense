@@ -79,8 +79,8 @@ mod values;
 
 pub use error::{Result, SemanticError};
 pub use evidence::{
-    EvidenceCompleteness, EvidenceEnvelope, EvidenceIdentity, EvidenceKind, EvidenceLink,
-    EvidenceRelation, EvidenceState,
+    EvidenceCompleteness, EvidenceEnvelope, EvidenceIdentity, EvidenceKind, EvidenceLedger,
+    EvidenceLink, EvidenceRelation, EvidenceState,
 };
 pub use facts::{
     AnnotationFact, CallFact, ContainsFact, DependencyFact, DocumentationFact, ImportFact,
