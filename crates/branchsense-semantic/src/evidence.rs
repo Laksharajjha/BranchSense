@@ -1,6 +1,7 @@
 //! Explicit availability states for analytical evidence.
 
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
 
 /// Whether an evidence item is directly observed or derived from other facts.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
@@ -38,6 +39,59 @@ pub struct EvidenceLink {
     from: EvidenceIdentity,
     to: EvidenceIdentity,
     relation: EvidenceRelation,
+}
+
+/// Deterministic, immutable-friendly evidence registry.
+///
+/// The ledger is the shared deduplication contract for analytical consumers.
+/// Identities represent the same underlying observation; links represent
+/// relationships between observations and are never collapsed merely because
+/// their subjects match. `Supports` and `Corroborates` therefore retain their
+/// distinct semantics, while `DerivedFrom` records deterministic lineage.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct EvidenceLedger {
+    identities: BTreeSet<EvidenceIdentity>,
+    lineage: BTreeSet<EvidenceLink>,
+}
+
+impl EvidenceLedger {
+    /// Creates an empty deterministic ledger.
+    #[must_use]
+    pub const fn new() -> Self {
+        Self { identities: BTreeSet::new(), lineage: BTreeSet::new() }
+    }
+
+    /// Adds an identity and returns whether it was new.
+    pub fn insert_identity(&mut self, identity: EvidenceIdentity) -> bool {
+        self.identities.insert(identity)
+    }
+
+    /// Adds a lineage link and returns whether it was new.
+    pub fn insert_link(&mut self, link: EvidenceLink) -> bool {
+        self.lineage.insert(link)
+    }
+
+    /// Merges another ledger without collapsing distinct relationships.
+    pub fn merge(&mut self, other: &Self) {
+        self.identities.extend(other.identities.iter().cloned());
+        self.lineage.extend(other.lineage.iter().cloned());
+    }
+
+    /// Returns identities in deterministic order.
+    pub fn identities(&self) -> impl Iterator<Item = &EvidenceIdentity> {
+        self.identities.iter()
+    }
+
+    /// Returns lineage links in deterministic order.
+    pub fn lineage(&self) -> impl Iterator<Item = &EvidenceLink> {
+        self.lineage.iter()
+    }
+
+    /// Returns whether the ledger contains the identity.
+    #[must_use]
+    pub fn contains_identity(&self, identity: &EvidenceIdentity) -> bool {
+        self.identities.contains(identity)
+    }
 }
 
 impl EvidenceLink {
@@ -184,9 +238,10 @@ impl EvidenceEnvelope {
     /// Adds an evidence identity, preserving deterministic uniqueness.
     #[must_use]
     pub fn with_identity(mut self, identity: EvidenceIdentity) -> Self {
-        self.identities.push(identity);
-        self.identities.sort();
-        self.identities.dedup();
+        let mut ledger = EvidenceLedger::new();
+        ledger.identities.extend(self.identities);
+        ledger.insert_identity(identity);
+        self.identities = ledger.identities.into_iter().collect();
         self
     }
 
@@ -207,9 +262,10 @@ impl EvidenceEnvelope {
     /// Adds a lineage link, preserving deterministic uniqueness.
     #[must_use]
     pub fn with_link(mut self, link: EvidenceLink) -> Self {
-        self.lineage.push(link);
-        self.lineage.sort();
-        self.lineage.dedup();
+        let mut ledger = EvidenceLedger::new();
+        ledger.lineage.extend(self.lineage);
+        ledger.insert_link(link);
+        self.lineage = ledger.lineage.into_iter().collect();
         self
     }
 
@@ -241,6 +297,15 @@ impl EvidenceEnvelope {
     #[must_use]
     pub fn lineage(&self) -> &[EvidenceLink] {
         &self.lineage
+    }
+
+    /// Returns this envelope as a standalone deterministic ledger.
+    #[must_use]
+    pub fn ledger(&self) -> EvidenceLedger {
+        EvidenceLedger {
+            identities: self.identities.iter().cloned().collect(),
+            lineage: self.lineage.iter().cloned().collect(),
+        }
     }
 }
 
@@ -310,6 +375,27 @@ impl Default for EvidenceCompleteness {
 }
 
 impl EvidenceState {
+    /// Combines two states without treating incomplete evidence as negative
+    /// evidence. Inconclusive states take precedence over observed and empty
+    /// states; this keeps uncertainty visible as results are composed.
+    #[must_use]
+    pub const fn combine(self, other: Self) -> Self {
+        if self.rank() >= other.rank() { self } else { other }
+    }
+
+    const fn rank(self) -> u8 {
+        match self {
+            Self::NoEvidence => 0,
+            Self::Observed => 1,
+            Self::Truncated => 2,
+            Self::Unresolved => 3,
+            Self::Ambiguous => 4,
+            Self::Unsupported => 5,
+            Self::Unavailable => 6,
+            Self::Failed => 7,
+        }
+    }
+
     /// Returns whether this state represents a completed, positive observation.
     #[must_use]
     pub const fn is_observed(self) -> bool {

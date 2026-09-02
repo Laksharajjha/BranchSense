@@ -5,10 +5,10 @@ use branchsense_core::{
 
 use crate::{
     AnalysisProvenance, ContentHash, Documentation, EvidenceCompleteness, EvidenceEnvelope,
-    EvidenceIdentity, EvidenceKind, EvidenceLink, EvidenceRelation, EvidenceState, FactDelta,
-    FactId, FactProvenance, FactSnapshot, IdentityMatch, ProducerIdentity, ResolutionState,
-    SemanticEntityIdentity, SemanticFact, SemanticFactRecord, SemanticFactSet, SnapshotIdentity,
-    SymbolDefinition, SymbolKind, SymbolReference,
+    EvidenceIdentity, EvidenceKind, EvidenceLedger, EvidenceLink, EvidenceRelation, EvidenceState,
+    FactDelta, FactId, FactProvenance, FactSnapshot, IdentityMatch, ProducerIdentity,
+    ResolutionState, SemanticEntityIdentity, SemanticFact, SemanticFactRecord, SemanticFactSet,
+    SnapshotIdentity, SymbolDefinition, SymbolKind, SymbolReference,
 };
 
 fn location() -> Location {
@@ -304,6 +304,100 @@ fn evidence_envelope_preserves_state_and_lineage() {
             .expect("deserialize envelope");
     assert_eq!(decoded, envelope);
     assert_eq!(envelope.lineage()[0].relation(), EvidenceRelation::DerivedFrom);
+}
+
+#[test]
+fn evidence_ledger_deduplicates_facts_but_not_relationships() {
+    let primary = EvidenceIdentity::new(EvidenceKind::Primary, "symbol:payment", Vec::new());
+    let supporting = EvidenceIdentity::new(EvidenceKind::Supporting, "history:payment", Vec::new());
+    let derived = EvidenceIdentity::new(EvidenceKind::Derived, "impact:payment", Vec::new());
+    let mut ledger = EvidenceLedger::new();
+
+    assert!(ledger.insert_identity(primary.clone()));
+    assert!(!ledger.insert_identity(primary.clone()));
+    assert!(ledger.insert_identity(supporting.clone()));
+    assert!(ledger.insert_link(EvidenceLink::new(
+        derived.clone(),
+        primary.clone(),
+        EvidenceRelation::DerivedFrom,
+    )));
+    assert!(ledger.insert_link(EvidenceLink::new(
+        supporting.clone(),
+        primary,
+        EvidenceRelation::Corroborates,
+    )));
+    assert_eq!(ledger.identities().count(), 2);
+    assert_eq!(ledger.lineage().count(), 2);
+
+    let encoded = serde_json::to_string(&ledger).expect("serialize ledger");
+    assert_eq!(
+        serde_json::from_str::<EvidenceLedger>(&encoded).expect("deserialize ledger"),
+        ledger
+    );
+}
+
+#[test]
+fn canonical_identity_matrix_is_conservative() {
+    let make = |document: &str, kind: SymbolKind, qualified: &str, id: &str| {
+        let document = DocumentId::new(document).expect("document ID");
+        let location = Location::new(
+            document,
+            Range::new(Position::new(0, 0, 0), Position::new(0, 1, 1)).expect("range"),
+        );
+        SymbolDefinition::new(
+            SymbolId::new(id).expect("symbol ID"),
+            kind,
+            Name::new("foo").expect("name"),
+            location,
+        )
+        .with_qualified_name(QualifiedName::new(qualified).expect("qualified name"))
+    };
+
+    let foo_string = make("src/A.java", SymbolKind::Method, "a.A.foo(String)", "one");
+    let foo_string_int = make("src/A.java", SymbolKind::Method, "a.A.foo(String, int)", "two");
+    let foo_int = make("src/A.java", SymbolKind::Method, "a.A.foo(int)", "three");
+    assert_ne!(
+        SemanticEntityIdentity::from_definition(&foo_string).expect("identity"),
+        SemanticEntityIdentity::from_definition(&foo_string_int).expect("identity")
+    );
+    assert_ne!(
+        SemanticEntityIdentity::from_definition(&foo_string_int).expect("identity"),
+        SemanticEntityIdentity::from_definition(&foo_int).expect("identity")
+    );
+
+    let same_revision = make("src/A.java", SymbolKind::Method, "a.A.foo(String)", "changed-id");
+    assert_eq!(
+        SemanticEntityIdentity::from_definition(&foo_string).expect("identity"),
+        SemanticEntityIdentity::from_definition(&same_revision).expect("identity")
+    );
+    assert_ne!(
+        SemanticEntityIdentity::from_definition(&foo_string).expect("identity"),
+        SemanticEntityIdentity::from_definition(&make(
+            "src/B.java",
+            SymbolKind::Method,
+            "a.A.foo(String)",
+            "other-file",
+        ))
+        .expect("identity")
+    );
+    assert_ne!(
+        SemanticEntityIdentity::from_definition(&foo_string).expect("identity"),
+        SemanticEntityIdentity::from_definition(&make(
+            "src/A.java",
+            SymbolKind::Method,
+            "b.A.foo(String)",
+            "other-package",
+        ))
+        .expect("identity")
+    );
+    assert!(matches!(IdentityMatch::Unknown, IdentityMatch::Unknown));
+    assert!(matches!(
+        IdentityMatch::Ambiguous(vec![
+            SemanticEntityIdentity::from_definition(&foo_string).expect("identity"),
+            SemanticEntityIdentity::from_definition(&foo_int).expect("identity"),
+        ]),
+        IdentityMatch::Ambiguous(_)
+    ));
 }
 
 #[test]
