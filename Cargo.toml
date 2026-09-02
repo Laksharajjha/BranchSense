@@ -36,7 +36,7 @@ categories = ["command-line-utilities", "development-tools"]
 
 [workspace.dependencies]
 clap = { version = "4.5.53", features = ["derive"] }
-criterion = "0.5.1"
+criterion = "0.7.0"
 gix = { version = "0.87.1", default-features = false, features = ["revision", "sha1"] }
 petgraph = "0.8.3"
 serde = { version = "1.0.217", features = ["derive"] }
