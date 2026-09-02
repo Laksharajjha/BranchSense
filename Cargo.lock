@@ -196,6 +196,7 @@ dependencies = [
  "criterion",
  "gix",
  "serde",
+ "serde_json",
  "tempfile",
  "thiserror",
 ]

@@ -11,7 +11,10 @@ mod revision;
 mod snapshot;
 
 pub use error::{GitError, Result};
-pub use repository::{GitRef, GitRefKind, GitRepository, MergeBaseResult, RepositoryIdentity};
+pub use repository::{
+    GitRef, GitRefKind, GitRepository, GitSourceDiagnostic, GitSourceLoad, MergeBaseResult,
+    RepositoryIdentity,
+};
 pub use revision::{GitCommitId, GitRevision, GitSignature, GitTreeId};
 pub use snapshot::{GitSemanticSnapshot, GitSnapshotIndexer};
 

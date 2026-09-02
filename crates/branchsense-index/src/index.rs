@@ -195,7 +195,9 @@ pub struct IndexDiagnostic {
 }
 
 impl IndexDiagnostic {
-    fn new(path: PathBuf, stage: IndexStage, message: impl Into<String>) -> Self {
+    /// Creates a diagnostic associated with one repository-relative path.
+    #[must_use]
+    pub fn new(path: PathBuf, stage: IndexStage, message: impl Into<String>) -> Self {
         Self { path, stage, message: message.into() }
     }
     /// Returns the affected relative path.
@@ -461,6 +463,22 @@ impl RepositoryIndex {
         sources: BTreeMap<PathBuf, String>,
         previous: Option<&SemanticIndexSnapshot>,
     ) -> Result<IndexResult> {
+        self.index_sources_with_diagnostics(repository, sources, Vec::new(), previous)
+    }
+
+    /// Indexes valid sources while retaining diagnostics for files that could
+    /// not be supplied by the source provider.
+    ///
+    /// # Errors
+    /// Returns an error when parser setup, semantic identity construction, or
+    /// graph publication fails.
+    pub fn index_sources_with_diagnostics(
+        &self,
+        repository: RepositoryIdentity,
+        sources: BTreeMap<PathBuf, String>,
+        diagnostics: Vec<IndexDiagnostic>,
+        previous: Option<&SemanticIndexSnapshot>,
+    ) -> Result<IndexResult> {
         let started = Instant::now();
         let parser =
             JavaParser::new(self.options.parser.clone()).map_err(IndexError::ParseSetup)?;
@@ -471,7 +489,9 @@ impl RepositoryIndex {
             compatible_previous.map_or_else(BTreeMap::new, |snapshot| snapshot.documents.clone());
         let mut graph = compatible_previous
             .map_or_else(SemanticGraph::empty, |snapshot| snapshot.graph.clone());
-        let mut report = IndexReportBuilder::new(sources.len(), 0);
+        let mut report =
+            IndexReportBuilder::new(sources.len() + diagnostics.len(), diagnostics.len());
+        report.diagnostics = diagnostics;
         let mut current_paths = BTreeSet::new();
         for (relative, source) in sources {
             current_paths.insert(relative.clone());
