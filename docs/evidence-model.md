@@ -43,6 +43,11 @@ entities. The shared `EvidenceLedger` deduplicates identical identities and
 exact lineage links with deterministic ordering. It never merges independent
 observations merely because they name the same subject.
 
+Evidence role is separate from underlying observation identity. A primary and
+supporting view of the same observation may share an observation identity while
+remaining distinct role-bearing evidence identities. `Corroborates` is always
+retained as an independent relationship; it is not duplicate evidence.
+
 ## Evidence relationships
 
 - **Primary** evidence is directly observed by an analysis pass.
@@ -59,6 +64,11 @@ remain visible.
 The link direction is `from` observation to `to` source observation. Thus a
 derived impact links to its changed-symbol evidence with `DerivedFrom`, while
 historical evidence links to a semantic observation with `Corroborates`.
+
+Completeness issues can be scoped as global, document-local, affected-subgraph,
+or unrelated. Index reports project source, parser, extraction, and graph
+diagnostics into this contract without claiming that every document-local
+issue invalidates every analysis.
 
 ## Scope
 
