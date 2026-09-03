@@ -51,4 +51,3 @@ The first evaluation should measure ranking quality against textual merge
 conflicts and separately report semantic integration outcomes. Probability
 metrics are not applicable until a calibrated probability target and dataset
 exist.
-

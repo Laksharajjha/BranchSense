@@ -61,4 +61,3 @@ semantic evidence → deterministic ordinal assessment → optional calibration 
 
 Calibration is a separate, versioned contract. A raw ordinal score must never
 be exposed as a probability field.
-
