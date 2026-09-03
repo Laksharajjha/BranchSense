@@ -69,6 +69,7 @@
 #![forbid(unsafe_code)]
 
 mod error;
+mod evaluation;
 mod evidence;
 mod facts;
 mod identity;
@@ -78,9 +79,14 @@ mod provenance;
 mod values;
 
 pub use error::{Result, SemanticError};
+pub use evaluation::{
+    DatasetSchemaVersion, EvalOutcome, EvalRecord, EvalRepositoryIdentity, EvalRevision,
+    LabelProvenance, OutcomeConfidence, PredictedOrdinalAssessment,
+};
 pub use evidence::{
+    AbstentionDecision, CompletenessIssue, CompletenessScope, CompletenessSource,
     EvidenceCompleteness, EvidenceEnvelope, EvidenceIdentity, EvidenceKind, EvidenceLedger,
-    EvidenceLink, EvidenceRelation, EvidenceState,
+    EvidenceLink, EvidenceRelation, EvidenceState, ObservationIdentity,
 };
 pub use facts::{
     AnnotationFact, CallFact, ContainsFact, DependencyFact, DocumentationFact, ImportFact,

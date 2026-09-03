@@ -95,6 +95,11 @@ fn malformed_file_does_not_abort_repository_indexing() {
     assert_eq!(result.report().discovered(), 4);
     assert_eq!(result.report().indexed(), 4);
     assert!(result.report().parse_diagnostics() > 0);
+    assert_eq!(result.report().completeness().issues().len(), 1);
+    assert_eq!(
+        result.report().completeness().issues()[0].scope(),
+        branchsense_semantic::CompletenessScope::Document
+    );
     assert_eq!(result.snapshot().graph().statistics().documents(), 4);
 }
 

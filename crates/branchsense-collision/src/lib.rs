@@ -245,7 +245,25 @@ impl CollisionAssessment {
     pub const fn severity(&self) -> CollisionSeverity {
         self.severity
     }
-    /// Returns the relative evidence strength from zero to one hundred.
+    /// Returns the ordinal semantic-evidence strength from zero to one hundred.
+    ///
+    /// # Semantics — NOT a probability
+    ///
+    /// This value is an **ordinal aggregation of semantic evidence strength**.
+    /// It must never be interpreted, serialized, or displayed as:
+    ///
+    /// - a probability of merge conflict,
+    /// - a probability of build failure,
+    /// - a probability of test failure,
+    /// - a confidence percentage,
+    /// - a likelihood ratio, or
+    /// - any other calibrated probability estimate.
+    ///
+    /// A future optional calibration layer may produce a calibrated probability
+    /// from this score. That calibration is separately versioned and is not part
+    /// of the [`CollisionAssessment`] contract.
+    ///
+    /// Use [`CollisionAssessment::severity`] for the ordinal band comparison.
     #[must_use]
     pub const fn evidence_score(&self) -> u8 {
         self.evidence_score
@@ -729,5 +747,33 @@ mod tests {
         let decoded: CollisionAssessment =
             serde_json::from_slice(&serialized).expect("deserialize");
         assert_eq!(forward, decoded);
+    }
+
+    #[test]
+    fn evidence_score_is_not_a_probability() {
+        // Contract test: CollisionAssessment JSON must not expose any field
+        // that could be misread as a probability, confidence, or likelihood.
+        // This prevents future API drift that would violate Prerequisite 6.
+        let assessment = CollisionAnalyzer::new().analyze(&set(vec![impact(
+            "DirectCaller",
+            1,
+            "Modified",
+            "Modified",
+        )]));
+        let json = serde_json::to_string(&assessment).expect("serialize");
+        assert!(
+            !json.contains("probability"),
+            "CollisionAssessment JSON must not contain 'probability'"
+        );
+        assert!(
+            !json.contains("confidence"),
+            "CollisionAssessment JSON must not contain 'confidence'"
+        );
+        assert!(
+            !json.contains("likelihood"),
+            "CollisionAssessment JSON must not contain 'likelihood'"
+        );
+        // The score itself must still be present (as evidence_score).
+        assert!(json.contains("evidence_score"));
     }
 }

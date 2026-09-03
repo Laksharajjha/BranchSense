@@ -13,7 +13,8 @@ use branchsense_graph::{GraphError, SemanticGraph};
 use branchsense_java::JavaParser;
 use branchsense_parser::{DocumentVersion, ParseInput, Parser, ParserConfiguration};
 use branchsense_semantic::{
-    ContentHash, FactProvenance, ProducerIdentity, SemanticFactSet, SnapshotIdentity,
+    CompletenessIssue, CompletenessScope, CompletenessSource, ContentHash, EvidenceCompleteness,
+    EvidenceState, FactProvenance, ProducerIdentity, SemanticFactSet, SnapshotIdentity,
 };
 use serde::{Deserialize, Serialize};
 
@@ -266,6 +267,33 @@ impl IndexReport {
     pub fn diagnostics(&self) -> &[IndexDiagnostic] {
         &self.diagnostics
     }
+
+    /// Projects source, parser, extraction, and graph diagnostics into the
+    /// shared semantic completeness contract.
+    #[must_use]
+    pub fn completeness(&self) -> EvidenceCompleteness {
+        let mut completeness = EvidenceCompleteness::new().with_semantic(if self.indexed == 0 {
+            if self.discovered == 0 { EvidenceState::NoEvidence } else { EvidenceState::Failed }
+        } else {
+            EvidenceState::Observed
+        });
+        for diagnostic in &self.diagnostics {
+            let (source, state) = match diagnostic.stage {
+                IndexStage::Read => (CompletenessSource::Source, EvidenceState::Unavailable),
+                IndexStage::Parse => (CompletenessSource::Parsing, EvidenceState::Failed),
+                IndexStage::Extract => (CompletenessSource::Extraction, EvidenceState::Failed),
+                IndexStage::Graph => (CompletenessSource::Graph, EvidenceState::Failed),
+            };
+            completeness = completeness.with_issue(CompletenessIssue::new(
+                state,
+                CompletenessScope::Document,
+                source,
+                Some(diagnostic.path.to_string_lossy().into_owned()),
+                diagnostic.message.clone(),
+            ));
+        }
+        completeness
+    }
     /// Returns elapsed indexing duration.
     #[must_use]
     pub const fn duration(&self) -> Duration {
@@ -388,6 +416,13 @@ impl RepositoryIndex {
                 }
             };
             report.parse_diagnostics += parsed.diagnostics().len();
+            for diagnostic in parsed.diagnostics() {
+                report.diagnostics.push(IndexDiagnostic::new(
+                    relative.clone(),
+                    IndexStage::Parse,
+                    format!("{:?}: {}", diagnostic.severity(), diagnostic.message()),
+                ));
+            }
             let extracted = match extractor.extract(parsed.document()) {
                 Ok(extracted) => extracted,
                 Err(error) => {
@@ -472,6 +507,7 @@ impl RepositoryIndex {
     /// # Errors
     /// Returns an error when parser setup, semantic identity construction, or
     /// graph publication fails.
+    #[allow(clippy::too_many_lines)]
     pub fn index_sources_with_diagnostics(
         &self,
         repository: RepositoryIdentity,
@@ -521,6 +557,13 @@ impl RepositoryIndex {
                 }
             };
             report.parse_diagnostics += parsed.diagnostics().len();
+            for diagnostic in parsed.diagnostics() {
+                report.diagnostics.push(IndexDiagnostic::new(
+                    relative.clone(),
+                    IndexStage::Parse,
+                    format!("{:?}: {}", diagnostic.severity(), diagnostic.message()),
+                ));
+            }
             let extracted = match extractor.extract(parsed.document()) {
                 Ok(extracted) => extracted,
                 Err(error) => {
