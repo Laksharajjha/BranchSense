@@ -15,6 +15,6 @@ fn test_evaluation_dataset_runner_placeholder() {
     // 3. Construct the BcsEvidenceAggregator.
     // 4. Engine assesses the result.
     // 5. Compare result.band() with the labeled target.
-    
+
     assert!(true, "Evaluation dataset framework initialized.");
 }

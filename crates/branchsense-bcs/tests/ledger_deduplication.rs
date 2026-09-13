@@ -1,6 +1,8 @@
-use branchsense_bcs::normalization::{BcsEvidenceCategory, BcsNormalizedEvidence};
 use branchsense_bcs::ledger::BcsEvidenceAggregator;
-use branchsense_semantic::{EvidenceEnvelope, EvidenceState, EvidenceCompleteness, AnalysisProvenance};
+use branchsense_bcs::normalization::{BcsEvidenceCategory, BcsNormalizedEvidence};
+use branchsense_semantic::{
+    AnalysisProvenance, EvidenceCompleteness, EvidenceEnvelope, EvidenceState,
+};
 
 #[test]
 fn test_deduplication_keeps_highest_strength_first() {
@@ -9,8 +11,20 @@ fn test_deduplication_keeps_highest_strength_first() {
     let comp = EvidenceCompleteness::new();
     let env = EvidenceEnvelope::new(EvidenceState::Observed, comp, prov);
 
-    let ev1 = BcsNormalizedEvidence::new(BcsEvidenceCategory::Impact, env.clone(), vec![], "A".into(), 10);
-    let ev2 = BcsNormalizedEvidence::new(BcsEvidenceCategory::Overlap, env.clone(), vec![], "B".into(), 50);
+    let ev1 = BcsNormalizedEvidence::new(
+        BcsEvidenceCategory::Impact,
+        env.clone(),
+        vec![],
+        "A".into(),
+        10,
+    );
+    let ev2 = BcsNormalizedEvidence::new(
+        BcsEvidenceCategory::Overlap,
+        env.clone(),
+        vec![],
+        "B".into(),
+        50,
+    );
 
     aggregator.add(ev1);
     aggregator.add(ev2);

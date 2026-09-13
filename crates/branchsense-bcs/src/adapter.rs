@@ -30,8 +30,9 @@ pub fn normalize_collision(assessment: &CollisionAssessment) -> Vec<BcsNormalize
 #[must_use]
 pub fn normalize_impact(impact: &ImpactSet) -> Vec<BcsNormalizedEvidence> {
     let mut evidence = Vec::new();
-    let entities: Vec<String> = impact.entries().iter().map(|e| e.impacted_symbol().as_str().to_owned()).collect();
-    
+    let entities: Vec<String> =
+        impact.entries().iter().map(|e| e.impacted_symbol().as_str().to_owned()).collect();
+
     evidence.push(BcsNormalizedEvidence::new(
         BcsEvidenceCategory::Impact,
         impact.evidence().clone(),
@@ -52,7 +53,7 @@ pub fn normalize_overlap(overlap: &OverlapSet) -> Vec<BcsNormalizedEvidence> {
             entities.push(target.as_str().to_owned());
         }
     }
-    
+
     evidence.push(BcsNormalizedEvidence::new(
         BcsEvidenceCategory::Overlap,
         overlap.evidence().clone(),
@@ -69,9 +70,13 @@ pub fn normalize_history(signals: &HistoricalSignals) -> Vec<BcsNormalizedEviden
     let mut evidence = Vec::new();
     let mut entities = Vec::new();
     for signal in signals.symbol_co_change() {
-        entities.push(format!("{} & {}", signal.left().qualified_name(), signal.right().qualified_name()));
+        entities.push(format!(
+            "{} & {}",
+            signal.left().qualified_name(),
+            signal.right().qualified_name()
+        ));
     }
-    
+
     evidence.push(BcsNormalizedEvidence::new(
         BcsEvidenceCategory::History,
         signals.evidence().clone(),
@@ -87,7 +92,7 @@ pub fn normalize_history(signals: &HistoricalSignals) -> Vec<BcsNormalizedEviden
 pub fn normalize_ownership(signals: &ResponsibilitySignals) -> Vec<BcsNormalizedEvidence> {
     let mut evidence = Vec::new();
     let entities = Vec::new();
-    
+
     evidence.push(BcsNormalizedEvidence::new(
         BcsEvidenceCategory::Ownership,
         signals.evidence().clone(),

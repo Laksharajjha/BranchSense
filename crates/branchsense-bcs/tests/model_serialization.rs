@@ -1,4 +1,4 @@
-use branchsense_bcs::{BcsOrdinalBand, BcsExplanation};
+use branchsense_bcs::{BcsExplanation, BcsOrdinalBand};
 use serde_json;
 
 #[test]

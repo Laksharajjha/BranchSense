@@ -13,9 +13,7 @@ impl BcsEvidenceAggregator {
     /// Creates a new empty aggregator.
     #[must_use]
     pub const fn new() -> Self {
-        Self {
-            raw_evidence: Vec::new(),
-        }
+        Self { raw_evidence: Vec::new() }
     }
 
     /// Adds a piece of normalized evidence to the aggregator.
@@ -45,7 +43,7 @@ impl BcsEvidenceAggregator {
 
         for ev in sorted {
             let mut provided_new_observation = false;
-            
+
             for identity in ev.envelope().identities() {
                 if unified_ledger.insert_identity(identity.clone()) {
                     provided_new_observation = true;

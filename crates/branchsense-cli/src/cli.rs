@@ -1179,7 +1179,7 @@ fn bcs_git_revisions(
     let snapshot_b = indexer
         .index_revision(&repository, &revision_b, None)
         .map_err(|error| CliError::Command(error.to_string()))?;
-        
+
     let differ = SemanticDiffer::new();
     let diff_a = differ.diff_git(&base_snapshot, &snapshot_a);
     let diff_b = differ.diff_git(&base_snapshot, &snapshot_b);
@@ -1195,13 +1195,13 @@ fn bcs_git_revisions(
     let history = HistoricalAnalyzer::new()
         .analyze(&repository, &merge_base, HistoricalOptions::new(100))
         .map_err(|error| CliError::Command(error.to_string()))?;
-        
+
     let ownership = ResponsibilityAnalyzer::new()
         .analyze(&repository, &merge_base, ResponsibilityOptions::new(100))
         .map_err(|error| CliError::Command(error.to_string()))?;
 
     let mut aggregator = branchsense_bcs::ledger::BcsEvidenceAggregator::new();
-    
+
     // Normalize and aggregate
     for ev in branchsense_bcs::adapter::normalize_collision(&assessment) {
         aggregator.add(ev);
@@ -1221,17 +1221,17 @@ fn bcs_git_revisions(
     for ev in branchsense_bcs::adapter::normalize_ownership(&ownership) {
         aggregator.add(ev);
     }
-    
+
     let engine = branchsense_bcs::score::BcsEngine::new();
     let bcs_result = engine.assess(&aggregator);
-    
+
     if json {
         let output = serde_json::to_string_pretty(&bcs_result)
             .map_err(|error| CliError::Command(error.to_string()))?;
         println!("{output}");
         return Ok(());
     }
-    
+
     println!("BranchSense BCS Assessment");
     println!("Base: {}", merge_base.commit_id());
     println!("Branch A: {}", revision_a.commit_id());
@@ -1246,6 +1246,6 @@ fn bcs_git_revisions(
     if let Some(abstention) = bcs_result.abstention() {
         println!("Abstention Decision: {:?}", abstention);
     }
-    
+
     Ok(())
 }

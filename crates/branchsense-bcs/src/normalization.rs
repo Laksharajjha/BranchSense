@@ -1,7 +1,7 @@
 //! Normalized evidence model for BCS consumption.
 
-use serde::{Deserialize, Serialize};
 use branchsense_semantic::EvidenceEnvelope;
+use serde::{Deserialize, Serialize};
 
 /// Categories of evidence consumed by the BCS scoring engine.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
@@ -45,13 +45,7 @@ impl BcsNormalizedEvidence {
     ) -> Self {
         // Ensure deterministic ordering of affected entities.
         affected_entities.sort();
-        Self {
-            category,
-            envelope,
-            affected_entities,
-            description,
-            strength,
-        }
+        Self { category, envelope, affected_entities, description, strength }
     }
 
     /// The broad category of this evidence.

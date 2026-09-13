@@ -1,9 +1,11 @@
 //! BCS assessment engine and execution logic.
 
+use crate::ledger::BcsEvidenceAggregator;
 use crate::model::{BcsAssessment, BcsExplanation};
 use crate::policy::BcsPolicyV1;
-use crate::ledger::BcsEvidenceAggregator;
-use branchsense_semantic::{AbstentionDecision, EvidenceEnvelope, EvidenceState, EvidenceCompleteness, AnalysisProvenance};
+use branchsense_semantic::{
+    AbstentionDecision, AnalysisProvenance, EvidenceCompleteness, EvidenceEnvelope, EvidenceState,
+};
 
 /// The main engine responsible for aggregating evidence and scoring.
 #[derive(Debug)]
@@ -22,7 +24,7 @@ impl BcsEngine {
     #[must_use]
     pub fn assess(&self, aggregator: &BcsEvidenceAggregator) -> BcsAssessment {
         let consolidated = aggregator.consolidate();
-        
+
         let mut total_score: u16 = 0;
         let mut reasons = Vec::new();
 
@@ -46,7 +48,10 @@ impl BcsEngine {
         // Naive evaluation: we check if any evidence carries a failed or indeterminate state
         for ev in &consolidated {
             let state = ev.envelope().state();
-            if matches!(state, EvidenceState::Unavailable | EvidenceState::Unsupported | EvidenceState::Failed) {
+            if matches!(
+                state,
+                EvidenceState::Unavailable | EvidenceState::Unsupported | EvidenceState::Failed
+            ) {
                 is_indeterminate = true;
                 reasons.push(format!("Abstaining due to {:?} evidence", state));
                 abstention = Some(AbstentionDecision::Indeterminate);
@@ -58,7 +63,7 @@ impl BcsEngine {
             band = crate::model::BcsOrdinalBand::Indeterminate;
         }
 
-        // TODO: In a more rigorous implementation, we should extract the global 
+        // TODO: In a more rigorous implementation, we should extract the global
         // EvidenceCompleteness and AbstentionDecision from the input snapshots
         // but for V1 we will synthesize a simple envelope.
         let comp = EvidenceCompleteness::new();

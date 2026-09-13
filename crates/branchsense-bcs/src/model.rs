@@ -1,7 +1,7 @@
 //! Core types and domain model for BCS assessment.
 
-use serde::{Deserialize, Serialize};
 use branchsense_semantic::{AbstentionDecision, EvidenceEnvelope};
+use serde::{Deserialize, Serialize};
 
 /// The deterministic, explainable ordinal assessment bands for BCS V1.
 ///
@@ -64,13 +64,7 @@ impl BcsAssessment {
         abstention: Option<AbstentionDecision>,
         explanation: BcsExplanation,
     ) -> Self {
-        Self {
-            band,
-            ordinal_score,
-            evidence,
-            abstention,
-            explanation,
-        }
+        Self { band, ordinal_score, evidence, abstention, explanation }
     }
 
     /// The primary ordinal band.
