@@ -1,0 +1,31 @@
+[package]
+name = "branchsense-bcs"
+description = "Deterministic Branch Collision Score (BCS) assessment and normalization."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+branchsense-core = { path = "../branchsense-core" }
+branchsense-semantic = { path = "../branchsense-semantic" }
+branchsense-diff = { path = "../branchsense-diff" }
+branchsense-impact = { path = "../branchsense-impact" }
+branchsense-overlap = { path = "../branchsense-overlap" }
+branchsense-collision = { path = "../branchsense-collision" }
+branchsense-history = { path = "../branchsense-history" }
+branchsense-ownership = { path = "../branchsense-ownership" }
+serde.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

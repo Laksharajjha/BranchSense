@@ -138,6 +138,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "branchsense-bcs"
+version = "0.1.0-alpha"
+dependencies = [
+ "branchsense-collision",
+ "branchsense-core",
+ "branchsense-diff",
+ "branchsense-history",
+ "branchsense-impact",
+ "branchsense-overlap",
+ "branchsense-ownership",
+ "branchsense-semantic",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "branchsense-collision"
 version = "0.1.0-alpha"
 dependencies = [
