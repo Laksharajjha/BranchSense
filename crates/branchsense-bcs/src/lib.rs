@@ -10,3 +10,4 @@ pub use model::{BcsAssessment, BcsExplanation, BcsOrdinalBand};
 pub mod normalization;
 
 pub use normalization::{BcsEvidenceCategory, BcsNormalizedEvidence};
+pub mod adapter;
