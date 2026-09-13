@@ -2,7 +2,6 @@
 
 use serde::{Deserialize, Serialize};
 use branchsense_semantic::EvidenceEnvelope;
-use branchsense_semantic::SemanticEntityIdentity;
 
 /// Categories of evidence consumed by the BCS scoring engine.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
@@ -29,7 +28,7 @@ pub enum BcsEvidenceCategory {
 pub struct BcsNormalizedEvidence {
     category: BcsEvidenceCategory,
     envelope: EvidenceEnvelope,
-    affected_symbols: Vec<SemanticEntityIdentity>,
+    affected_entities: Vec<String>,
     description: String,
     strength: u8,
 }
@@ -40,16 +39,16 @@ impl BcsNormalizedEvidence {
     pub fn new(
         category: BcsEvidenceCategory,
         envelope: EvidenceEnvelope,
-        mut affected_symbols: Vec<SemanticEntityIdentity>,
+        mut affected_entities: Vec<String>,
         description: String,
         strength: u8,
     ) -> Self {
-        // Ensure deterministic ordering of affected symbols.
-        affected_symbols.sort();
+        // Ensure deterministic ordering of affected entities.
+        affected_entities.sort();
         Self {
             category,
             envelope,
-            affected_symbols,
+            affected_entities,
             description,
             strength,
         }
@@ -67,10 +66,10 @@ impl BcsNormalizedEvidence {
         &self.envelope
     }
 
-    /// The symbols explicitly involved in this evidence, in a deterministic order.
+    /// The entities (symbols, files) explicitly involved in this evidence.
     #[must_use]
-    pub fn affected_symbols(&self) -> &[SemanticEntityIdentity] {
-        &self.affected_symbols
+    pub fn affected_entities(&self) -> &[String] {
+        &self.affected_entities
     }
 
     /// A structured human-readable explanation of the evidence.
