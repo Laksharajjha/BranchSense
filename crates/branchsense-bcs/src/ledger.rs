@@ -29,8 +29,8 @@ impl BcsEvidenceAggregator {
 
     /// Consolidates all evidence using a shared ledger to remove duplicate observations.
     ///
-    /// Double-counting is avoided by merging the underlying EvidenceEnvelope identities
-    /// into an EvidenceLedger. If a normalized evidence item provides no new unique
+    /// Double-counting is avoided by merging the underlying `EvidenceEnvelope` identities
+    /// into an `EvidenceLedger`. If a normalized evidence item provides no new unique
     /// observations, it is considered fully redundant and excluded from the final scoring set.
     #[must_use]
     pub fn consolidate(&self) -> Vec<BcsNormalizedEvidence> {
@@ -39,7 +39,7 @@ impl BcsEvidenceAggregator {
 
         // Sort by strength descending to keep the strongest evidence when deduplicating
         let mut sorted = self.raw_evidence.clone();
-        sorted.sort_by(|a, b| b.strength().cmp(&a.strength()));
+        sorted.sort_by_key(|a| std::cmp::Reverse(a.strength()));
 
         for ev in sorted {
             let mut provided_new_observation = false;
@@ -54,7 +54,7 @@ impl BcsEvidenceAggregator {
             // and we shouldn't throw it away if it has no identities at all.
             // But structurally, valid evidence should have identities.
             // For now, if it provides new observations OR has no identities (baseline), we keep it.
-            if provided_new_observation || ev.envelope().identities().len() == 0 {
+            if provided_new_observation || ev.envelope().identities().is_empty() {
                 consolidated.push(ev);
             }
         }

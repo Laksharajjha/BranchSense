@@ -1,3 +1,4 @@
+//! Engine evaluation tests.
 use branchsense_bcs::BcsOrdinalBand;
 use branchsense_bcs::ledger::BcsEvidenceAggregator;
 use branchsense_bcs::normalization::{BcsEvidenceCategory, BcsNormalizedEvidence};

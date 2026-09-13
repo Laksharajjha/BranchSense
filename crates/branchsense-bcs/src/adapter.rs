@@ -7,7 +7,7 @@ use branchsense_impact::ImpactSet;
 use branchsense_overlap::OverlapSet;
 use branchsense_ownership::ResponsibilitySignals;
 
-/// Normalize a CollisionAssessment into standard evidence.
+/// Normalize a `CollisionAssessment` into standard evidence.
 #[must_use]
 pub fn normalize_collision(assessment: &CollisionAssessment) -> Vec<BcsNormalizedEvidence> {
     let mut evidence = Vec::new();
@@ -26,7 +26,7 @@ pub fn normalize_collision(assessment: &CollisionAssessment) -> Vec<BcsNormalize
     evidence
 }
 
-/// Normalize an ImpactSet into standard evidence.
+/// Normalize an `ImpactSet` into standard evidence.
 #[must_use]
 pub fn normalize_impact(impact: &ImpactSet) -> Vec<BcsNormalizedEvidence> {
     let mut evidence = Vec::new();
@@ -43,7 +43,7 @@ pub fn normalize_impact(impact: &ImpactSet) -> Vec<BcsNormalizedEvidence> {
     evidence
 }
 
-/// Normalize an OverlapSet into standard evidence.
+/// Normalize an `OverlapSet` into standard evidence.
 #[must_use]
 pub fn normalize_overlap(overlap: &OverlapSet) -> Vec<BcsNormalizedEvidence> {
     let mut evidence = Vec::new();
@@ -64,7 +64,7 @@ pub fn normalize_overlap(overlap: &OverlapSet) -> Vec<BcsNormalizedEvidence> {
     evidence
 }
 
-/// Normalize HistoricalSignals into standard evidence.
+/// Normalize `HistoricalSignals` into standard evidence.
 #[must_use]
 pub fn normalize_history(signals: &HistoricalSignals) -> Vec<BcsNormalizedEvidence> {
     let mut evidence = Vec::new();
@@ -87,7 +87,7 @@ pub fn normalize_history(signals: &HistoricalSignals) -> Vec<BcsNormalizedEviden
     evidence
 }
 
-/// Normalize ResponsibilitySignals into standard evidence.
+/// Normalize `ResponsibilitySignals` into standard evidence.
 #[must_use]
 pub fn normalize_ownership(signals: &ResponsibilitySignals) -> Vec<BcsNormalizedEvidence> {
     let mut evidence = Vec::new();

@@ -1241,10 +1241,10 @@ fn bcs_git_revisions(
     println!("BCS Score: {}", bcs_result.ordinal_score());
     println!("Reasons:");
     for reason in bcs_result.explanation().reasons() {
-        println!(" - {}", reason);
+        println!(" - {reason}");
     }
     if let Some(abstention) = bcs_result.abstention() {
-        println!("Abstention Decision: {:?}", abstention);
+        println!("Abstention Decision: {abstention:?}");
     }
 
     Ok(())

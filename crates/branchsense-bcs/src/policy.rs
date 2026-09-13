@@ -4,6 +4,7 @@ use crate::model::BcsOrdinalBand;
 
 /// Explicit configuration rules for BCS V1.
 #[derive(Clone, Debug)]
+#[allow(clippy::struct_field_names)]
 pub struct BcsPolicyV1 {
     low_threshold: u16,
     moderate_threshold: u16,

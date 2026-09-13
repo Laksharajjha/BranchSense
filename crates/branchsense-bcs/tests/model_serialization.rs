@@ -1,5 +1,5 @@
+//! Model serialization tests.
 use branchsense_bcs::{BcsExplanation, BcsOrdinalBand};
-use serde_json;
 
 #[test]
 fn test_ordinal_band_serialization() {
