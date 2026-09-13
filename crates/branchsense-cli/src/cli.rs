@@ -115,6 +115,24 @@ enum Command {
         #[arg(long)]
         branch_b: String,
     },
+    /// Execute a deterministic Branch Collision Score (BCS) assessment.
+    Bcs {
+        /// Repository path.
+        #[arg(long, default_value = ".")]
+        repo: PathBuf,
+        /// Expected common-base reference.
+        #[arg(long)]
+        base: String,
+        /// First branch, revision, or ref.
+        #[arg(long)]
+        branch_a: String,
+        /// Second branch, revision, or ref.
+        #[arg(long)]
+        branch_b: String,
+        /// Output machine-readable JSON.
+        #[arg(long)]
+        json: bool,
+    },
     /// Analyze bounded historical semantic evidence from a Git revision.
     History {
         /// Repository path.
@@ -244,6 +262,9 @@ impl Cli {
             }
             Command::Analyze { repo, base, branch_a, branch_b } => {
                 analyze_git_revisions(&repo, &base, &branch_a, &branch_b)?;
+            }
+            Command::Bcs { repo, base, branch_a, branch_b, json } => {
+                bcs_git_revisions(&repo, &base, &branch_a, &branch_b, json)?;
             }
             Command::History { repo, revision, max_commits, json } => {
                 history_git_revision(&repo, &revision, max_commits, json)?;
@@ -1108,4 +1129,123 @@ fn print_graph(graph: &SemanticGraph) {
     println!("DependsOn: {}", edge_count(EdgeKind::DependsOn));
     println!("Total Nodes: {}", statistics.nodes());
     println!("Total Edges: {}", statistics.edges());
+}
+
+fn bcs_git_revisions(
+    repo_path: &std::path::Path,
+    base: &str,
+    branch_a: &str,
+    branch_b: &str,
+    json: bool,
+) -> Result<()> {
+    let repository =
+        GitRepository::discover(repo_path).map_err(|error| CliError::Command(error.to_string()))?;
+    let requested_base =
+        repository.resolve(base).map_err(|error| CliError::Command(error.to_string()))?;
+    let revision_a =
+        repository.resolve(branch_a).map_err(|error| CliError::Command(error.to_string()))?;
+    let revision_b =
+        repository.resolve(branch_b).map_err(|error| CliError::Command(error.to_string()))?;
+    let merge_base = match repository
+        .merge_bases(&revision_a, &revision_b)
+        .map_err(|error| CliError::Command(error.to_string()))?
+    {
+        MergeBaseResult::None => {
+            return Err(CliError::Command(format!(
+                "branches `{branch_a}` and `{branch_b}` have no common ancestor"
+            )));
+        }
+        MergeBaseResult::Multiple(_) => {
+            return Err(CliError::Command(format!(
+                "branches `{branch_a}` and `{branch_b}` have multiple merge bases"
+            )));
+        }
+        MergeBaseResult::Single(base) => base,
+    };
+    if merge_base.commit_id() != requested_base.commit_id() {
+        return Err(CliError::Command(format!(
+            "`{base}` is not the common merge base; expected {}",
+            merge_base.commit_id()
+        )));
+    }
+
+    let indexer = GitSnapshotIndexer::default();
+    let base_snapshot = indexer
+        .index_revision(&repository, &merge_base, None)
+        .map_err(|error| CliError::Command(error.to_string()))?;
+    let snapshot_a = indexer
+        .index_revision(&repository, &revision_a, None)
+        .map_err(|error| CliError::Command(error.to_string()))?;
+    let snapshot_b = indexer
+        .index_revision(&repository, &revision_b, None)
+        .map_err(|error| CliError::Command(error.to_string()))?;
+        
+    let differ = SemanticDiffer::new();
+    let diff_a = differ.diff_git(&base_snapshot, &snapshot_a);
+    let diff_b = differ.diff_git(&base_snapshot, &snapshot_b);
+    let impact_analyzer = ImpactAnalyzer::new();
+    let impact_a =
+        impact_analyzer.analyze(&diff_a, base_snapshot.semantic(), snapshot_a.semantic());
+    let impact_b =
+        impact_analyzer.analyze(&diff_b, base_snapshot.semantic(), snapshot_b.semantic());
+    let overlaps = branchsense_overlap::SemanticOverlapAnalyzer::new()
+        .analyze(&diff_a, &impact_a, &diff_b, &impact_b);
+    let assessment = CollisionAnalyzer::new().analyze(&overlaps);
+
+    let history = HistoricalAnalyzer::new()
+        .analyze(&repository, &merge_base, HistoricalOptions::new(100))
+        .map_err(|error| CliError::Command(error.to_string()))?;
+        
+    let ownership = ResponsibilityAnalyzer::new()
+        .analyze(&repository, &merge_base, ResponsibilityOptions::new(100))
+        .map_err(|error| CliError::Command(error.to_string()))?;
+
+    let mut aggregator = branchsense_bcs::ledger::BcsEvidenceAggregator::new();
+    
+    // Normalize and aggregate
+    for ev in branchsense_bcs::adapter::normalize_collision(&assessment) {
+        aggregator.add(ev);
+    }
+    for ev in branchsense_bcs::adapter::normalize_impact(&impact_a) {
+        aggregator.add(ev);
+    }
+    for ev in branchsense_bcs::adapter::normalize_impact(&impact_b) {
+        aggregator.add(ev);
+    }
+    for ev in branchsense_bcs::adapter::normalize_overlap(&overlaps) {
+        aggregator.add(ev);
+    }
+    for ev in branchsense_bcs::adapter::normalize_history(&history) {
+        aggregator.add(ev);
+    }
+    for ev in branchsense_bcs::adapter::normalize_ownership(&ownership) {
+        aggregator.add(ev);
+    }
+    
+    let engine = branchsense_bcs::score::BcsEngine::new();
+    let bcs_result = engine.assess(&aggregator);
+    
+    if json {
+        let output = serde_json::to_string_pretty(&bcs_result)
+            .map_err(|error| CliError::Command(error.to_string()))?;
+        println!("{output}");
+        return Ok(());
+    }
+    
+    println!("BranchSense BCS Assessment");
+    println!("Base: {}", merge_base.commit_id());
+    println!("Branch A: {}", revision_a.commit_id());
+    println!("Branch B: {}", revision_b.commit_id());
+    println!();
+    println!("BCS Ordinal Band: {:?}", bcs_result.band());
+    println!("BCS Score: {}", bcs_result.ordinal_score());
+    println!("Reasons:");
+    for reason in bcs_result.explanation().reasons() {
+        println!(" - {}", reason);
+    }
+    if let Some(abstention) = bcs_result.abstention() {
+        println!("Abstention Decision: {:?}", abstention);
+    }
+    
+    Ok(())
 }
