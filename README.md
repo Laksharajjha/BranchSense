@@ -53,7 +53,7 @@ input for future branch-overlap and collision prediction.
 - [x] Deterministic semantic collision assessment with explainable evidence
 - [x] Bounded historical semantic evidence and co-change analysis
 - [x] Bounded historical contributor responsibility evidence
-- [ ] Branch collision prediction / BCS — future work
+- [x] Deterministic Branch Collision Score (BCS) layer and ordinal bounds
 - [ ] VS Code or other IDE integration — future work
 - [ ] Collaboration server — future work
 
@@ -103,6 +103,11 @@ cargo run --bin branchsense -- overlap --repo . --base main \
 
 # Assess the strength of semantic collision evidence.
 cargo run --bin branchsense -- analyze --repo . --base main \
+  --branch-a feature/payment --branch-b feature/checkout
+
+
+# Run the complete Branch Collision Score (BCS) pipeline.
+cargo run --bin branchsense -- bcs --repo . --base main \
   --branch-a feature/payment --branch-b feature/checkout
 
 # Inspect bounded historical semantic evidence.
@@ -256,9 +261,9 @@ Git understanding       ✅
         ↓
 Impact analysis         ✅
         ↓
-BCS readiness hardening  CURRENT
+Branch Collision Score (BCS) ✅
         ↓
-BCS prediction           NEXT
+Persistence and replication  NEXT
         ↓
 IDE warning              FUTURE
 ```

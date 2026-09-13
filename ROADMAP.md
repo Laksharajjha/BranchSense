@@ -111,13 +111,18 @@
 - Git-backed `branchsense ownership` inspection with JSON output.
 - Keep historical signals and collision assessment independent.
 
-## Next — Evidence envelope integration
+## Milestone 16 — Branch Collision Score (BCS) ✅
 
-- Propagate one evidence envelope through diff, impact, overlap, collision,
-  history, and responsibility results.
-- Preserve overload-safe canonical identities and explicit evidence lineage.
-- Add adversarial identity, truncation, privacy, and CLI integration coverage.
-- Keep BCS design separate until evidence contracts are complete.
+- Implement a deterministic, explainable ordinal scoring policy (None, Low, Moderate, High, Critical).
+- Propagate one `EvidenceEnvelope` through diff, impact, overlap, collision, history, and responsibility results.
+- Implement an `EvidenceLedger` to deduplicate and aggregate evidence without double-counting.
+- Abstain (`Indeterminate`) when input evidence is Unavailable, Unsupported, or Failed.
+- Expose the complete assessment pipeline through `branchsense bcs --repo --base --branch-a --branch-b`.
+
+## Next — Persistence and replication
+
+- Expand test coverage with larger cross-subsystem adversarial privacy and truncation benchmarks.
+- Hardening of JSON-RPC integration and external observability layers.
 
 ## Future milestones
 
