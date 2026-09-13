@@ -31,11 +31,7 @@ impl BcsEngine {
         // 1. Calculate base ordinal score
         for ev in &consolidated {
             total_score = total_score.saturating_add(u16::from(ev.strength()));
-            reasons.push(format!(
-                "Included {:?} evidence: {}",
-                ev.category(),
-                ev.description()
-            ));
+            reasons.push(format!("Included {:?} evidence: {}", ev.category(), ev.description()));
         }
 
         // Cap at 100 for ordinal band logic (if our max is 100).
@@ -74,12 +70,6 @@ impl BcsEngine {
         let prov = AnalysisProvenance::new();
         let env = EvidenceEnvelope::new(EvidenceState::Observed, comp, prov);
 
-        BcsAssessment::new(
-            band,
-            total_score,
-            env,
-            abstention,
-            BcsExplanation::new(reasons),
-        )
+        BcsAssessment::new(band, total_score, env, abstention, BcsExplanation::new(reasons))
     }
 }
