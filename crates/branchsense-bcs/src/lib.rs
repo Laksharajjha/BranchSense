@@ -6,3 +6,7 @@
 pub mod model;
 
 pub use model::{BcsAssessment, BcsExplanation, BcsOrdinalBand};
+
+pub mod normalization;
+
+pub use normalization::{BcsEvidenceCategory, BcsNormalizedEvidence};
