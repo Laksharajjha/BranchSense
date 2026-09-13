@@ -20,9 +20,13 @@ and releases use semantic versioning with an explicit alpha phase.
 ### Planned
 
 - Persistent semantic snapshots and richer Git provenance.
-- BCS prediction after evidence-contract hardening and validation.
 
 ### Added
+
+- The deterministic Branch Collision Score (BCS) layer (`branchsense-bcs`) combining normalized evidence from collision, impact, history, and ownership.
+- Explainable ordinal scoring bands (None, Low, Moderate, High, Critical) with a strict abstention gate (`Indeterminate`) when trustworthiness cannot be guaranteed.
+- Ledger-based evidence deduplication avoiding double counting across analytical domains.
+- `branchsense bcs --repo --base --branch-a --branch-b` CLI command (with optional `--json` output) to execute the complete assessment pipeline.
 
 - `branchsense-ownership` for bounded, read-only contributor responsibility
   evidence derived from Git commit authors.
@@ -73,6 +77,11 @@ The first public alpha establishes the local parsing foundation for BranchSense.
 The APIs are experimental and may change before the first stable release.
 
 ### Added
+
+- The deterministic Branch Collision Score (BCS) layer (`branchsense-bcs`) combining normalized evidence from collision, impact, history, and ownership.
+- Explainable ordinal scoring bands (None, Low, Moderate, High, Critical) with a strict abstention gate (`Indeterminate`) when trustworthiness cannot be guaranteed.
+- Ledger-based evidence deduplication avoiding double counting across analytical domains.
+- `branchsense bcs --repo --base --branch-a --branch-b` CLI command (with optional `--json` output) to execute the complete assessment pipeline.
 
 - Immutable semantic domain model with strongly typed identifiers and values.
 - Language-neutral parser abstraction with parsed documents, diagnostics,
