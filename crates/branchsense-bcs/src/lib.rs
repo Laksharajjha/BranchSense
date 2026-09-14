@@ -1,4 +1,3 @@
-pub mod factor;
 
 //! Deterministic Branch Collision Score (BCS) assessment and normalization.
 //!
@@ -16,3 +15,4 @@ pub mod adapter;
 pub mod ledger;
 pub mod policy;
 pub mod score;
+pub mod factor;
