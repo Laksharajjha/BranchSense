@@ -1,4 +1,4 @@
-#![allow(missing_docs)]
+#![allow(missing_docs, clippy::cast_possible_truncation)]
 //! Benchmarks for the BCS aggregation and scoring engine.
 
 use branchsense_bcs::ledger::BcsEvidenceAggregator;
