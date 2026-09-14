@@ -1,14 +1,7 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+//! Evaluation dataset harness and analytical runner.
+//!
+//! Exclusively consumes immutable Git repositories and evaluates the BCS
+//! engine accuracy against explicit historical labels (ground truth) without
+//! leaking outcome knowledge into the scoring engine.
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub mod model;
