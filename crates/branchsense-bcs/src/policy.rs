@@ -1,6 +1,9 @@
 //! Policy definition for BCS V1 ordinal scoring.
 
+use crate::factor::{BcsFactorContribution, BcsFactorKind};
 use crate::model::BcsOrdinalBand;
+use crate::normalization::{BcsEvidenceCategory, BcsNormalizedEvidence};
+use branchsense_semantic::EvidenceKind;
 
 /// Explicit configuration rules for BCS V1.
 #[derive(Clone, Debug)]
@@ -38,6 +41,67 @@ impl BcsPolicyV1 {
         } else {
             BcsOrdinalBand::None
         }
+    }
+    
+    /// Extracts explicit factors from normalized evidence.
+    #[must_use]
+    pub fn extract_factors(&self, evidence: &[BcsNormalizedEvidence]) -> Vec<BcsFactorContribution> {
+        let mut factors = Vec::new();
+        
+        for ev in evidence {
+            let identity = branchsense_semantic::EvidenceIdentity::new(
+                EvidenceKind::Primary,
+                format!("{:?}", ev.category()),
+                ev.affected_entities().to_vec()
+            );
+            
+            match ev.category() {
+                BcsEvidenceCategory::Collision => {
+                    factors.push(BcsFactorContribution::new(
+                        BcsFactorKind::DirectCollision,
+                        identity,
+                        u16::from(ev.strength()) * 5, // Policy explicitly weights collisions
+                        format!("Direct collision detected: {}", ev.description())
+                    ));
+                },
+                BcsEvidenceCategory::Impact => {
+                    factors.push(BcsFactorContribution::new(
+                        BcsFactorKind::SharedImpact,
+                        identity,
+                        u16::from(ev.strength()) * 2, 
+                        format!("Shared transitive impact: {}", ev.description())
+                    ));
+                },
+                BcsEvidenceCategory::History => {
+                    factors.push(BcsFactorContribution::new(
+                        BcsFactorKind::HistoricalCochange,
+                        identity,
+                        u16::from(ev.strength()), 
+                        format!("Historical co-change overlap: {}", ev.description())
+                    ));
+                },
+                BcsEvidenceCategory::Ownership => {
+                    factors.push(BcsFactorContribution::new(
+                        BcsFactorKind::ResponsibilityConcentration,
+                        identity,
+                        u16::from(ev.strength()), 
+                        format!("Responsibility overlap: {}", ev.description())
+                    ));
+                },
+                BcsEvidenceCategory::Overlap => {
+                    // Overlap is structural, acts as a baseline multiplier if needed, 
+                    // or just a low base score.
+                    factors.push(BcsFactorContribution::new(
+                        BcsFactorKind::SharedImpact, // Treated as impact
+                        identity,
+                        u16::from(ev.strength()), 
+                        format!("Structural overlap: {}", ev.description())
+                    ));
+                }
+            }
+        }
+        
+        factors
     }
 }
 
