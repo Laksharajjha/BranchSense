@@ -103,3 +103,6 @@ guarantee. See the project roadmap for planned milestones.
 
 [Unreleased]: https://github.com/Laksharajjha/BranchSense/compare/v0.1.0-alpha...HEAD
 [0.1.0-alpha]: https://github.com/Laksharajjha/BranchSense/releases/tag/v0.1.0-alpha
+
+### Added
+- **Evaluation Harness**: Offline evaluation crate for massive historical dataset analysis (`branchsense evaluate`).
