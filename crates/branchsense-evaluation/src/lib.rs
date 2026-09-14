@@ -5,3 +5,4 @@
 //! leaking outcome knowledge into the scoring engine.
 
 pub mod model;
+pub mod loader;
