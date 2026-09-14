@@ -1,3 +1,5 @@
+pub mod factor;
+
 //! Deterministic Branch Collision Score (BCS) assessment and normalization.
 //!
 //! This crate aggregates semantic evidence from multiple subsystems (collision, impact, history, ownership)
