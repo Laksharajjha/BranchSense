@@ -117,6 +117,7 @@ dependencies = [
  "branchsense-collision",
  "branchsense-core",
  "branchsense-diff",
+ "branchsense-evaluation",
  "branchsense-extractor-java",
  "branchsense-git",
  "branchsense-graph",
@@ -189,6 +190,26 @@ dependencies = [
  "branchsense-semantic",
  "criterion",
  "serde",
+ "tempfile",
+]
+
+[[package]]
+name = "branchsense-evaluation"
+version = "0.1.0-alpha"
+dependencies = [
+ "branchsense-bcs",
+ "branchsense-collision",
+ "branchsense-core",
+ "branchsense-diff",
+ "branchsense-git",
+ "branchsense-history",
+ "branchsense-impact",
+ "branchsense-index",
+ "branchsense-overlap",
+ "branchsense-ownership",
+ "branchsense-semantic",
+ "serde",
+ "serde_json",
  "tempfile",
 ]
 

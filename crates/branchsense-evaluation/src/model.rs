@@ -1,7 +1,10 @@
+#![allow(clippy::similar_names)]
 //! Evaluation dataset schemas and models.
 
 use branchsense_bcs::model::BcsAssessment;
-use branchsense_semantic::{DatasetSchemaVersion, EvalOutcome, EvalRepositoryIdentity, EvalRevision};
+use branchsense_semantic::{
+    DatasetSchemaVersion, EvalOutcome, EvalRepositoryIdentity, EvalRevision,
+};
 use serde::{Deserialize, Serialize};
 
 /// An explicitly structured, historical evaluation case acting as input.

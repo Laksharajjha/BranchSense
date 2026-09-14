@@ -1,3 +1,4 @@
+#![allow(clippy::field_reassign_with_default)]
 //! Descriptive metrics for evaluating BCS assessment against historical outcomes.
 
 use std::collections::BTreeMap;
@@ -16,7 +17,7 @@ pub struct EvaluationMetrics {
     unavailable_repository: usize,
 
     band_distribution: BTreeMap<BcsOrdinalBand, usize>,
-    
+
     // Outcome tracking (True = issue occurred, False = clean, None = unknown)
     outcome_build_failure: usize,
     outcome_test_failure: usize,
@@ -39,16 +40,22 @@ impl EvaluationMetrics {
                     metrics.successful_cases += 1;
                     if let Some(assessment) = result.assessment() {
                         *metrics.band_distribution.entry(assessment.band()).or_insert(0) += 1;
-                        
+
                         // Agreement tracking (only if outcome is definitively known)
-                        if let Some(had_issue) = result.observed_outcome().semantic_integration_issue {
-                            *metrics.agreement_semantic_issue.entry((assessment.band(), had_issue)).or_insert(0) += 1;
+                        if let Some(had_issue) =
+                            result.observed_outcome().semantic_integration_issue
+                        {
+                            *metrics
+                                .agreement_semantic_issue
+                                .entry((assessment.band(), had_issue))
+                                .or_insert(0) += 1;
                         }
                     }
                 }
                 EvaluationDiagnostic::Abstained => {
                     metrics.abstained_cases += 1;
-                    *metrics.band_distribution.entry(BcsOrdinalBand::Indeterminate).or_insert(0) += 1;
+                    *metrics.band_distribution.entry(BcsOrdinalBand::Indeterminate).or_insert(0) +=
+                        1;
                 }
                 EvaluationDiagnostic::FailedAnalysis => {
                     metrics.failed_analysis += 1;

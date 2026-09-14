@@ -1266,7 +1266,11 @@ fn bcs_git_revisions(
     Ok(())
 }
 
-fn evaluate_dataset(repo: &std::path::Path, dataset_path: &std::path::Path, json: bool) -> Result<()> {
+fn evaluate_dataset(
+    repo: &std::path::Path,
+    dataset_path: &std::path::Path,
+    json: bool,
+) -> Result<()> {
     let content = std::fs::read_to_string(dataset_path)
         .map_err(|e| CliError::Command(format!("Failed to read dataset: {e}")))?;
 
@@ -1276,7 +1280,7 @@ fn evaluate_dataset(repo: &std::path::Path, dataset_path: &std::path::Path, json
         if json {
             let error_json = serde_json::json!({
                 "error": "Dataset validation failed",
-                "diagnostics": dataset.diagnostics().iter().map(|d| d.to_string()).collect::<Vec<_>>()
+                "diagnostics": dataset.diagnostics().iter().map(std::string::ToString::to_string).collect::<Vec<_>>()
             });
             println!("{}", serde_json::to_string_pretty(&error_json).unwrap());
         } else {
@@ -1317,7 +1321,7 @@ fn evaluate_dataset(repo: &std::path::Path, dataset_path: &std::path::Path, json
     println!();
     println!("Band Distribution:");
     for (band, count) in metrics.band_distribution() {
-        println!("  {:?}: {}", band, count);
+        println!("  {band:?}: {count}");
     }
 
     Ok(())

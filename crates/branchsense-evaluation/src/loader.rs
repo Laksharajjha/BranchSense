@@ -45,12 +45,14 @@ impl EvaluationDataset {
             match serde_json::from_str::<EvaluationCase>(line) {
                 Ok(case) => {
                     if !seen_ids.insert(case.case_id().to_owned()) {
-                        diagnostics.push(DatasetDiagnostic::DuplicateCaseId(case.case_id().to_owned()));
-                    } else if case.base_revision().as_str().is_empty()
-                        || case.branch_a_revision().as_str().is_empty()
-                        || case.branch_b_revision().as_str().is_empty()
+                        diagnostics
+                            .push(DatasetDiagnostic::DuplicateCaseId(case.case_id().to_owned()));
+                    } else if case.base_revision().hash().is_empty()
+                        || case.branch_a_revision().hash().is_empty()
+                        || case.branch_b_revision().hash().is_empty()
                     {
-                        diagnostics.push(DatasetDiagnostic::MalformedRevision(case.case_id().to_owned()));
+                        diagnostics
+                            .push(DatasetDiagnostic::MalformedRevision(case.case_id().to_owned()));
                     } else {
                         cases.push(case);
                     }
@@ -59,7 +61,8 @@ impl EvaluationDataset {
                     // In a production app, we would log the detailed Serde error.
                     // For the harness, silently dropping completely malformed JSON lines
                     // or storing a parse diagnostic is the strategy. We will append a diagnostic.
-                    diagnostics.push(DatasetDiagnostic::MalformedRevision("Unparseable JSON".to_owned()));
+                    diagnostics
+                        .push(DatasetDiagnostic::MalformedRevision("Unparseable JSON".to_owned()));
                 }
             }
         }

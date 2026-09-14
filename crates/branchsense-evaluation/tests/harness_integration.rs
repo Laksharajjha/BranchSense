@@ -2,9 +2,11 @@
 use std::process::Command;
 use tempfile::TempDir;
 
-use branchsense_evaluation::model::EvaluationDiagnostic;
-use branchsense_semantic::{DatasetSchemaVersion, EvalOutcome, EvalRepositoryIdentity, EvalRevision};
 use branchsense_evaluation::model::EvaluationCase;
+use branchsense_evaluation::model::EvaluationDiagnostic;
+use branchsense_semantic::{
+    DatasetSchemaVersion, EvalOutcome, EvalRepositoryIdentity, EvalRevision,
+};
 
 fn run_git(root: &std::path::Path, args: &[&str]) {
     let status = Command::new("git").args(args).current_dir(root).status().unwrap();
@@ -38,11 +40,13 @@ fn create_controlled_fixture() -> TempDir {
     run_git(root, &["branch", "feature_b"]);
 
     run_git(root, &["checkout", "feature_a"]);
-    std::fs::write(root.join("src/System.java"), "class System { void start(int x) {} }\n").unwrap();
+    std::fs::write(root.join("src/System.java"), "class System { void start(int x) {} }\n")
+        .unwrap();
     commit(root, "branch a changes");
 
     run_git(root, &["checkout", "feature_b"]);
-    std::fs::write(root.join("src/System.java"), "class System { void start(String y) {} }\n").unwrap();
+    std::fs::write(root.join("src/System.java"), "class System { void start(String y) {} }\n")
+        .unwrap();
     commit(root, "branch b changes");
 
     directory
@@ -52,7 +56,7 @@ fn create_controlled_fixture() -> TempDir {
 fn test_harness_evaluates_controlled_fixture_deterministically() {
     let fixture = create_controlled_fixture();
     let root = fixture.path();
-    
+
     // NOTE: This represents a TEST FIXTURE scenario, not a real historical integration.
     let outcome = EvalOutcome::new().with_semantic_integration_issue(true);
     let case = EvaluationCase::new(
@@ -69,7 +73,7 @@ fn test_harness_evaluates_controlled_fixture_deterministically() {
     // Ensure deterministic non-interference from ground truth
     let mut outcome2 = EvalOutcome::new();
     outcome2.build_failure = Some(false);
-    
+
     let case2 = EvaluationCase::new(
         "synthetic-fixture-02",
         DatasetSchemaVersion::current(),
@@ -83,15 +87,18 @@ fn test_harness_evaluates_controlled_fixture_deterministically() {
 
     let results = branchsense_evaluation::runner::run_dataset(&[case, case2], root);
     assert_eq!(results.len(), 2);
-    
+
     let res1 = &results[0];
     let res2 = &results[1];
 
     assert_eq!(res1.diagnostic(), &EvaluationDiagnostic::Abstained);
     assert_eq!(res2.diagnostic(), &EvaluationDiagnostic::Abstained);
-    
+
     // Non-interference check: The BCS score MUST be perfectly identical regardless of the varying outcome labels.
-    assert_eq!(res1.assessment().unwrap().ordinal_score(), res2.assessment().unwrap().ordinal_score());
+    assert_eq!(
+        res1.assessment().unwrap().ordinal_score(),
+        res2.assessment().unwrap().ordinal_score()
+    );
     assert_eq!(res1.assessment().unwrap().band(), res2.assessment().unwrap().band());
     assert_eq!(res1.observed_outcome().semantic_integration_issue, Some(true));
     assert_eq!(res2.observed_outcome().build_failure, Some(false));
@@ -111,7 +118,10 @@ fn test_harness_handles_unavailable_repository() {
         outcome,
     );
 
-    let results = branchsense_evaluation::runner::run_dataset(&[case], std::path::Path::new("/does/not/exist"));
+    let results = branchsense_evaluation::runner::run_dataset(
+        &[case],
+        std::path::Path::new("/does/not/exist"),
+    );
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].diagnostic(), &EvaluationDiagnostic::UnavailableRepository);
 }

@@ -1,13 +1,14 @@
+#![allow(clippy::manual_let_else)]
 //! Deterministic pipeline runner for historical evaluation cases.
 
 use std::path::Path;
 
-use branchsense_bcs::ledger::BcsEvidenceAggregator;
-use branchsense_bcs::score::BcsEngine;
 use branchsense_bcs::adapter::{
     normalize_collision, normalize_history, normalize_impact, normalize_overlap,
     normalize_ownership,
 };
+use branchsense_bcs::ledger::BcsEvidenceAggregator;
+use branchsense_bcs::score::BcsEngine;
 use branchsense_collision::CollisionAnalyzer;
 use branchsense_diff::SemanticDiffer;
 use branchsense_git::{GitRepository, GitSnapshotIndexer};
@@ -30,7 +31,7 @@ pub fn run_evaluation_case(case: &EvaluationCase, repo_path: &Path) -> Evaluatio
                 EvaluationDiagnostic::UnavailableRepository,
                 None,
                 case.observed_outcome().clone(),
-            )
+            );
         }
     };
 
@@ -46,7 +47,7 @@ pub fn run_evaluation_case(case: &EvaluationCase, repo_path: &Path) -> Evaluatio
                 EvaluationDiagnostic::FailedAnalysis,
                 None,
                 case.observed_outcome().clone(),
-            )
+            );
         }
     };
     let resolved_a = match repository.resolve(head_a) {
@@ -57,7 +58,7 @@ pub fn run_evaluation_case(case: &EvaluationCase, repo_path: &Path) -> Evaluatio
                 EvaluationDiagnostic::FailedAnalysis,
                 None,
                 case.observed_outcome().clone(),
-            )
+            );
         }
     };
     let resolved_b = match repository.resolve(head_b) {
@@ -68,7 +69,7 @@ pub fn run_evaluation_case(case: &EvaluationCase, repo_path: &Path) -> Evaluatio
                 EvaluationDiagnostic::FailedAnalysis,
                 None,
                 case.observed_outcome().clone(),
-            )
+            );
         }
     };
 
@@ -81,7 +82,7 @@ pub fn run_evaluation_case(case: &EvaluationCase, repo_path: &Path) -> Evaluatio
                 EvaluationDiagnostic::FailedAnalysis,
                 None,
                 case.observed_outcome().clone(),
-            )
+            );
         }
     };
     let snapshot_a = match indexer.index_revision(&repository, &resolved_a, None) {
@@ -92,7 +93,7 @@ pub fn run_evaluation_case(case: &EvaluationCase, repo_path: &Path) -> Evaluatio
                 EvaluationDiagnostic::FailedAnalysis,
                 None,
                 case.observed_outcome().clone(),
-            )
+            );
         }
     };
     let snapshot_b = match indexer.index_revision(&repository, &resolved_b, None) {
@@ -103,7 +104,7 @@ pub fn run_evaluation_case(case: &EvaluationCase, repo_path: &Path) -> Evaluatio
                 EvaluationDiagnostic::FailedAnalysis,
                 None,
                 case.observed_outcome().clone(),
-            )
+            );
         }
     };
 
@@ -132,7 +133,7 @@ pub fn run_evaluation_case(case: &EvaluationCase, repo_path: &Path) -> Evaluatio
                 EvaluationDiagnostic::FailedAnalysis,
                 None,
                 case.observed_outcome().clone(),
-            )
+            );
         }
     };
 
@@ -148,7 +149,7 @@ pub fn run_evaluation_case(case: &EvaluationCase, repo_path: &Path) -> Evaluatio
                 EvaluationDiagnostic::FailedAnalysis,
                 None,
                 case.observed_outcome().clone(),
-            )
+            );
         }
     };
 

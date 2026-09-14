@@ -4,7 +4,7 @@
 //! engine accuracy against explicit historical labels (ground truth) without
 //! leaking outcome knowledge into the scoring engine.
 
-pub mod model;
 pub mod loader;
-pub mod runner;
 pub mod metrics;
+pub mod model;
+pub mod runner;
