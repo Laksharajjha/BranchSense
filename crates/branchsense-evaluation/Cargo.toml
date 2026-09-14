@@ -1,0 +1,35 @@
+[package]
+name = "branchsense-evaluation"
+description = "Evaluation harness and dataset runner for BranchSense BCS."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+branchsense-core = { path = "../branchsense-core" }
+branchsense-semantic = { path = "../branchsense-semantic" }
+branchsense-git = { path = "../branchsense-git" }
+branchsense-index = { path = "../branchsense-index" }
+branchsense-diff = { path = "../branchsense-diff" }
+branchsense-impact = { path = "../branchsense-impact" }
+branchsense-overlap = { path = "../branchsense-overlap" }
+branchsense-collision = { path = "../branchsense-collision" }
+branchsense-history = { path = "../branchsense-history" }
+branchsense-ownership = { path = "../branchsense-ownership" }
+branchsense-bcs = { path = "../branchsense-bcs" }
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
