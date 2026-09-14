@@ -1,3 +1,6 @@
+#![allow(missing_docs)]
+//! Benchmarks for the BCS aggregation and scoring engine.
+
 use branchsense_bcs::ledger::BcsEvidenceAggregator;
 use branchsense_bcs::normalization::{BcsEvidenceCategory, BcsNormalizedEvidence};
 use branchsense_bcs::score::BcsEngine;
@@ -56,7 +59,7 @@ fn bench_engine(c: &mut Criterion) {
     });
 
     c.bench_function("bcs_duplicate_heavy_evidence", |b| {
-        let mut evidence = generate_evidence(10, BcsEvidenceCategory::Collision);
+        let evidence = generate_evidence(10, BcsEvidenceCategory::Collision);
         // Duplicate them 100 times to test ledger dedup
         let mut duplicates = Vec::new();
         for _ in 0..100 {
