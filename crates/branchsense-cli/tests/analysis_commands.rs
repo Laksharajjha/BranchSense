@@ -83,6 +83,17 @@ fn branch_analysis_commands_run_without_network_or_checkout_mutation() {
             "feature/b",
         ],
         vec![
+            "bcs",
+            "--repo",
+            ".",
+            "--base",
+            "HEAD~1",
+            "--branch-a",
+            "feature/a",
+            "--branch-b",
+            "feature/b",
+        ],
+        vec![
             "analyze",
             "--repo",
             ".",

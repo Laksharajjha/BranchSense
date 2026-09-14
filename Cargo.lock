@@ -150,6 +150,7 @@ dependencies = [
  "branchsense-overlap",
  "branchsense-ownership",
  "branchsense-semantic",
+ "criterion",
  "serde",
  "serde_json",
 ]

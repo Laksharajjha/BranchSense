@@ -11,6 +11,7 @@ pub mod normalization;
 
 pub use normalization::{BcsEvidenceCategory, BcsNormalizedEvidence};
 pub mod adapter;
+pub mod factor;
 pub mod ledger;
 pub mod policy;
 pub mod score;
