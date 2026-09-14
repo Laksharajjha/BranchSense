@@ -7,3 +7,4 @@
 pub mod model;
 pub mod loader;
 pub mod runner;
+pub mod metrics;
