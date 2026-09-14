@@ -109,3 +109,11 @@ impl EvaluationMetrics {
         &self.agreement_semantic_issue
     }
 }
+
+impl EvaluationMetrics {
+    /// Count of cases where repository was unavailable.
+    #[must_use]
+    pub const fn unavailable_repository(&self) -> usize {
+        self.unavailable_repository
+    }
+}

@@ -36,6 +36,18 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    /// Execute the BCS evaluation harness across a dataset.
+    Evaluate {
+        /// Repository path containing the Git data.
+        #[arg(long, default_value = ".")]
+        repo: PathBuf,
+        /// Path to the JSONL evaluation dataset.
+        #[arg(long)]
+        dataset: PathBuf,
+        /// Output machine-readable JSON instead of text.
+        #[arg(long)]
+        json: bool,
+    },
     /// Print `BranchSense` version information.
     Version,
     /// Parse one Java source file.
@@ -266,6 +278,10 @@ impl Cli {
             Command::Bcs { repo, base, branch_a, branch_b, json } => {
                 bcs_git_revisions(&repo, &base, &branch_a, &branch_b, json)?;
             }
+            Command::Evaluate { repo, dataset, json } => {
+                evaluate_dataset(&repo, &dataset, json)?;
+            }
+
             Command::History { repo, revision, max_commits, json } => {
                 history_git_revision(&repo, &revision, max_commits, json)?;
             }
@@ -1245,6 +1261,63 @@ fn bcs_git_revisions(
     }
     if let Some(abstention) = bcs_result.abstention() {
         println!("Abstention Decision: {abstention:?}");
+    }
+
+    Ok(())
+}
+
+fn evaluate_dataset(repo: &std::path::Path, dataset_path: &std::path::Path, json: bool) -> Result<()> {
+    let content = std::fs::read_to_string(dataset_path)
+        .map_err(|e| CliError::Command(format!("Failed to read dataset: {e}")))?;
+
+    let dataset = branchsense_evaluation::loader::EvaluationDataset::from_jsonl(&content);
+
+    if !dataset.is_valid() {
+        if json {
+            let error_json = serde_json::json!({
+                "error": "Dataset validation failed",
+                "diagnostics": dataset.diagnostics().iter().map(|d| d.to_string()).collect::<Vec<_>>()
+            });
+            println!("{}", serde_json::to_string_pretty(&error_json).unwrap());
+        } else {
+            eprintln!("Error: Dataset validation failed!");
+            for diagnostic in dataset.diagnostics() {
+                eprintln!("- {diagnostic}");
+            }
+        }
+        return Err(CliError::Command("Invalid dataset".into()));
+    }
+
+    let results = branchsense_evaluation::runner::run_dataset(dataset.cases(), repo);
+    let metrics = branchsense_evaluation::metrics::EvaluationMetrics::compute(&results);
+
+    if json {
+        let output = serde_json::json!({
+            "metrics": {
+                "total_cases": metrics.total_cases(),
+                "successful_cases": metrics.successful_cases(),
+                "abstained_cases": metrics.abstained_cases(),
+                "failed_analysis": metrics.failed_analysis(),
+                "unavailable_repository": metrics.unavailable_repository(),
+            },
+            "band_distribution": metrics.band_distribution(),
+            "results": results,
+        });
+        println!("{}", serde_json::to_string_pretty(&output).unwrap());
+        return Ok(());
+    }
+
+    println!("BranchSense Evaluation Runner");
+    println!("-----------------------------");
+    println!("Total cases: {}", metrics.total_cases());
+    println!("Successful:  {}", metrics.successful_cases());
+    println!("Abstained:   {}", metrics.abstained_cases());
+    println!("Failed:      {}", metrics.failed_analysis());
+    println!("No Repo:     {}", metrics.unavailable_repository());
+    println!();
+    println!("Band Distribution:");
+    for (band, count) in metrics.band_distribution() {
+        println!("  {:?}: {}", band, count);
     }
 
     Ok(())
