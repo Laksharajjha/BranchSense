@@ -25,50 +25,64 @@ impl BcsEngine {
     pub fn assess(&self, aggregator: &BcsEvidenceAggregator) -> BcsAssessment {
         let consolidated = aggregator.consolidate();
 
-        let mut total_score: u16 = 0;
+        // 1. Synthesize an overarching completeness / state / abstention
+        let mut is_indeterminate = false;
+        let mut abstention = None;
         let mut reasons = Vec::new();
+        
+        let mut combined_state = EvidenceState::NoEvidence;
 
-        // 1. Calculate base ordinal score
+        // Evaluate state and abstention gates
         for ev in &consolidated {
-            total_score = total_score.saturating_add(u16::from(ev.strength()));
-            reasons.push(format!("Included {:?} evidence: {}", ev.category(), ev.description()));
+            let state = ev.envelope().state();
+            combined_state = combined_state.combine(state);
+            
+            // Indeterminate rules:
+            if matches!(
+                state,
+                EvidenceState::Unavailable | EvidenceState::Failed | EvidenceState::Ambiguous | EvidenceState::Unresolved
+            ) {
+                is_indeterminate = true;
+                reasons.push(format!("Abstaining due to untrustworthy evidence state: {state:?}"));
+                abstention = Some(AbstentionDecision::Indeterminate);
+            }
+            // Truncated triggers a warn but allows proceed
+            if state == EvidenceState::Truncated {
+                reasons.push("Warning: BCS analysis was based on truncated evidence".to_owned());
+                if abstention.is_none() {
+                    abstention = Some(AbstentionDecision::Warn);
+                }
+            }
+        }
+        
+        if combined_state == EvidenceState::NoEvidence {
+            abstention = Some(AbstentionDecision::Proceed);
         }
 
-        // Cap at 100 for ordinal band logic (if our max is 100).
+        // 2. Extract explicit deterministic factors via Policy
+        let factors = self.policy.extract_factors(&consolidated);
+        let mut total_score: u16 = 0;
+
+        for factor in &factors {
+            total_score = total_score.saturating_add(factor.score());
+            reasons.push(format!("Factor [{}]: {}", factor.score(), factor.explanation()));
+        }
+
+        // Cap at 100 for ordinal band logic.
         if total_score > 100 {
             total_score = 100;
         }
 
         let mut band = self.policy.evaluate_band(total_score);
 
-        // 2. Synthesize an overarching completeness / state / abstention
-        let mut is_indeterminate = false;
-        let mut abstention = None;
-
-        // Naive evaluation: we check if any evidence carries a failed or indeterminate state
-        for ev in &consolidated {
-            let state = ev.envelope().state();
-            if matches!(
-                state,
-                EvidenceState::Unavailable | EvidenceState::Unsupported | EvidenceState::Failed
-            ) {
-                is_indeterminate = true;
-                reasons.push(format!("Abstaining due to {state:?} evidence"));
-                abstention = Some(AbstentionDecision::Indeterminate);
-                break;
-            }
-        }
-
         if is_indeterminate {
             band = crate::model::BcsOrdinalBand::Indeterminate;
+            total_score = 0;
         }
 
-        // TODO: In a more rigorous implementation, we should extract the global
-        // EvidenceCompleteness and AbstentionDecision from the input snapshots
-        // but for V1 we will synthesize a simple envelope.
         let comp = EvidenceCompleteness::new();
         let prov = AnalysisProvenance::new();
-        let env = EvidenceEnvelope::new(EvidenceState::Observed, comp, prov);
+        let env = EvidenceEnvelope::new(combined_state, comp, prov);
 
         BcsAssessment::new(band, total_score, env, abstention, BcsExplanation::new(reasons))
     }
