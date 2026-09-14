@@ -4,8 +4,10 @@
 use branchsense_bcs::ledger::BcsEvidenceAggregator;
 use branchsense_bcs::normalization::{BcsEvidenceCategory, BcsNormalizedEvidence};
 use branchsense_bcs::score::BcsEngine;
-use branchsense_semantic::{AnalysisProvenance, EvidenceCompleteness, EvidenceEnvelope, EvidenceState};
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use branchsense_semantic::{
+    AnalysisProvenance, EvidenceCompleteness, EvidenceEnvelope, EvidenceState,
+};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 
 fn generate_evidence(count: usize, category: BcsEvidenceCategory) -> Vec<BcsNormalizedEvidence> {
     let mut vec = Vec::with_capacity(count);
@@ -65,7 +67,7 @@ fn bench_engine(c: &mut Criterion) {
         for _ in 0..100 {
             duplicates.extend(evidence.clone());
         }
-        
+
         b.iter(|| {
             let mut aggregator = BcsEvidenceAggregator::new();
             for e in &duplicates {

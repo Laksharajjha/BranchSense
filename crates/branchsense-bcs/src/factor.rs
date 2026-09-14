@@ -49,7 +49,7 @@ impl BcsFactorContribution {
     pub const fn score(&self) -> u16 {
         self.score
     }
-    
+
     /// The structural explanation.
     #[must_use]
     pub fn explanation(&self) -> &str {

@@ -29,18 +29,21 @@ impl BcsEngine {
         let mut is_indeterminate = false;
         let mut abstention = None;
         let mut reasons = Vec::new();
-        
+
         let mut combined_state = EvidenceState::NoEvidence;
 
         // Evaluate state and abstention gates
         for ev in &consolidated {
             let state = ev.envelope().state();
             combined_state = combined_state.combine(state);
-            
+
             // Indeterminate rules:
             if matches!(
                 state,
-                EvidenceState::Unavailable | EvidenceState::Failed | EvidenceState::Ambiguous | EvidenceState::Unresolved
+                EvidenceState::Unavailable
+                    | EvidenceState::Failed
+                    | EvidenceState::Ambiguous
+                    | EvidenceState::Unresolved
             ) {
                 is_indeterminate = true;
                 reasons.push(format!("Abstaining due to untrustworthy evidence state: {state:?}"));
@@ -54,7 +57,7 @@ impl BcsEngine {
                 }
             }
         }
-        
+
         if combined_state == EvidenceState::NoEvidence {
             abstention = Some(AbstentionDecision::Proceed);
         }
