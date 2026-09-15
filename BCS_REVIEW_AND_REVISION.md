@@ -1,3 +1,8 @@
+> [!WARNING] HISTORICAL RESEARCH PROPOSAL / BCS-C
+> This document explores commutativity certificates (BCS-C) and probability limits.
+> These concepts are NOT implemented in the current BranchSense engine.
+> See `docs/bcs.md` and `docs/bcs-contract.md` for the current implementation specification.
+
 # From BCS to BCS-C: Reviewer Rejection and Revision
 
 **Status:** Research revision memo  

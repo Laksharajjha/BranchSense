@@ -58,10 +58,6 @@ pub fn normalize_impact(impact: &ImpactSet) -> Vec<BcsNormalizedEvidence> {
     strength += (stats.transitive_impacts() as u32) * 2;
     strength += signature_consumers * 10;
 
-    if stats.truncated() {
-        strength += 20;
-    }
-
     // Ensure we provide a non-zero minimum if there are entries
     let strength_u8 = strength.clamp(1, 100) as u8;
 
@@ -69,8 +65,12 @@ pub fn normalize_impact(impact: &ImpactSet) -> Vec<BcsNormalizedEvidence> {
         format!("Semantic impact with {signature_consumers} signature consumer(s)")
     } else if stats.transitive_impacts() > 0 {
         format!("Transitive semantic impact (depth {})", stats.max_depth())
-    } else {
+    } else if stats.direct_impacts() > 0 {
         "Direct semantic impact".to_owned()
+    } else if stats.truncated() {
+        "Truncated semantic impact".to_owned()
+    } else {
+        "Semantic impact".to_owned()
     };
 
     vec![BcsNormalizedEvidence::new(
@@ -90,43 +90,37 @@ pub fn normalize_overlap(overlap: &OverlapSet) -> Vec<BcsNormalizedEvidence> {
     }
 
     let mut entities: Vec<String> = Vec::new();
-    let mut direct_changes = 0;
-    let mut impact_changes = 0;
-    let mut cross_impacts = 0;
-    let mut shared_impacts = 0;
-
     for e in overlap.entries() {
-        match e.explanation().kind() {
-            branchsense_overlap::OverlapKind::DirectChange => direct_changes += 1,
-            branchsense_overlap::OverlapKind::ImpactChange => impact_changes += 1,
-            branchsense_overlap::OverlapKind::CrossImpact => cross_impacts += 1,
-            branchsense_overlap::OverlapKind::SharedImpact => shared_impacts += 1,
-        }
         for target in e.explanation().targets() {
             entities.push(target.as_str().to_owned());
         }
     }
-
     entities.sort();
     entities.dedup();
 
+    let stats = overlap.statistics();
     let mut strength: u32 = 0;
+
     // Direct change is the strongest form of overlap.
-    strength += direct_changes * 30;
+    strength += (stats.direct_changes() as u32) * 30;
     // Cross/Impact changes show direct dependencies between changed logic.
-    strength += impact_changes * 15;
-    strength += cross_impacts * 15;
+    strength += (stats.impact_changes() as u32) * 15;
+    strength += (stats.cross_impacts() as u32) * 15;
     // Shared impact shows common downstream dependencies.
-    strength += shared_impacts * 5;
+    strength += (stats.shared_impacts() as u32) * 5;
 
     let strength_u8 = strength.clamp(1, 100) as u8;
 
-    let description = if direct_changes > 0 {
-        format!("Direct structural overlap ({direct_changes} symbol(s))")
-    } else if impact_changes > 0 || cross_impacts > 0 {
+    let description = if stats.direct_changes() > 0 {
+        format!("Direct structural overlap ({} symbol(s))", stats.direct_changes())
+    } else if stats.impact_changes() > 0 || stats.cross_impacts() > 0 {
         "Direct causal overlap".to_owned()
-    } else {
+    } else if stats.shared_impacts() > 0 {
         "Shared downstream impact".to_owned()
+    } else if stats.truncated() {
+        "Truncated overlap analysis".to_owned()
+    } else {
+        "Semantic overlap".to_owned()
     };
 
     vec![BcsNormalizedEvidence::new(
@@ -180,11 +174,6 @@ pub fn normalize_history(signals: &HistoricalSignals) -> Vec<BcsNormalizedEviden
         }
     }
     strength += recency_boost;
-
-    // Truncation means there might be more history we couldn't analyze
-    if signals.evidence().state() == branchsense_semantic::EvidenceState::Truncated {
-        strength += 10;
-    }
 
     // Minimum strength if we generated evidence but calculated 0
     let strength_u8 = strength.clamp(1, 100) as u8;
@@ -270,10 +259,6 @@ pub fn normalize_ownership(signals: &ResponsibilitySignals) -> Vec<BcsNormalized
 
     if total_active_contributors > 0 {
         strength += std::cmp::min(10, total_active_contributors as u32);
-    }
-
-    if signals.evidence().state() == branchsense_semantic::EvidenceState::Truncated {
-        strength += 5;
     }
 
     let strength_u8 = strength.clamp(1, 100) as u8;

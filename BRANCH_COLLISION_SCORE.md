@@ -1,3 +1,9 @@
+> [!WARNING] HISTORICAL RESEARCH PROPOSAL
+> This document describes a theoretical system including noisy-OR composition,
+> confidence intervals, and counterfactual merge surface analysis.
+> It does NOT describe the current BCS V1 implementation.
+> See `docs/bcs.md` and `docs/bcs-contract.md` for the current implementation specification.
+
 # Branch Collision Score (BCS)
 
 **Status:** Superseded research draft; retained for design history  

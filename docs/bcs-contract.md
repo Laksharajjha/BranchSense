@@ -1,3 +1,6 @@
+> [!NOTE] CANONICAL V1/V1.1 SPECIFICATION
+> This document defines the actual current architectural contract of the Branch Collision Score.
+
 # BCS Contract
 
 Branch Collision Score (BCS) is a future BranchSense consumer of semantic

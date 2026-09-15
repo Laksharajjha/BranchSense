@@ -181,6 +181,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "branchsense-dataset"
+version = "0.1.0-alpha"
+dependencies = [
+ "branchsense-evaluation",
+ "branchsense-semantic",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "branchsense-diff"
 version = "0.1.0-alpha"
 dependencies = [

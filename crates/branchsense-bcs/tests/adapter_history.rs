@@ -105,6 +105,6 @@ fn test_history_normalization_truncated() {
 
     let n = normalize_history(&history);
     assert_eq!(n.len(), 1);
-    assert_eq!(n[0].strength(), 10);
+    assert_eq!(n[0].strength(), 1, "truncation should not add strength");
     assert_eq!(n[0].description(), "Truncated history");
 }

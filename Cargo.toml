@@ -16,7 +16,7 @@ members = [
     "crates/branchsense-collision",
     "crates/branchsense-history",
     "crates/branchsense-ownership",
-    "crates/branchsense-git", "crates/branchsense-bcs", "crates/branchsense-evaluation",
+    "crates/branchsense-git", "crates/branchsense-bcs", "crates/branchsense-evaluation", "crates/branchsense-dataset",
 ]
 default-members = ["crates/branchsense-cli"]
 resolver = "3"
