@@ -1,7 +1,17 @@
 [package]
 name = "branchsense-dataset"
-version = "0.1.0-alpha"
-edition = "2021"
+description = "Dataset generator for BranchSense."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [dependencies]
 branchsense-semantic = { path = "../branchsense-semantic" }
