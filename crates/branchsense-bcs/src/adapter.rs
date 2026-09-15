@@ -29,18 +29,55 @@ pub fn normalize_collision(assessment: &CollisionAssessment) -> Vec<BcsNormalize
 /// Normalize an `ImpactSet` into standard evidence.
 #[must_use]
 pub fn normalize_impact(impact: &ImpactSet) -> Vec<BcsNormalizedEvidence> {
-    let mut evidence = Vec::new();
-    let entities: Vec<String> =
+    if impact.is_empty() {
+        return Vec::new();
+    }
+
+    let mut entities: Vec<String> =
         impact.entries().iter().map(|e| e.impacted_symbol().as_str().to_owned()).collect();
 
-    evidence.push(BcsNormalizedEvidence::new(
+    // Deduplicate entities
+    entities.sort();
+    entities.dedup();
+
+    let mut signature_consumers = 0;
+    for entry in impact.entries() {
+        for cause in entry.causes() {
+            if cause.explanation().kind() == branchsense_impact::ImpactKind::SignatureConsumer {
+                signature_consumers += 1;
+            }
+        }
+    }
+
+    let stats = impact.statistics();
+    let mut strength: u32 = 0;
+
+    strength += (stats.direct_impacts() as u32) * 5;
+    strength += (stats.transitive_impacts() as u32) * 2;
+    strength += signature_consumers * 10;
+    
+    if stats.truncated() {
+        strength += 20;
+    }
+
+    // Ensure we provide a non-zero minimum if there are entries
+    let strength_u8 = std::cmp::max(1, std::cmp::min(100, strength)) as u8;
+
+    let description = if signature_consumers > 0 {
+        format!("Semantic impact with {} signature consumer(s)", signature_consumers)
+    } else if stats.transitive_impacts() > 0 {
+        format!("Transitive semantic impact (depth {})", stats.max_depth())
+    } else {
+        "Direct semantic impact".to_owned()
+    };
+
+    vec![BcsNormalizedEvidence::new(
         BcsEvidenceCategory::Impact,
         impact.evidence().clone(),
         entities,
-        "Transitive semantic impact".to_owned(),
-        10,
-    ));
-    evidence
+        description,
+        strength_u8,
+    )]
 }
 
 /// Normalize an `OverlapSet` into standard evidence.
