@@ -1,3 +1,5 @@
+//! Tests for ownership normalization.
+
 use branchsense_bcs::adapter::normalize_ownership;
 use branchsense_ownership::ResponsibilitySignals;
 
@@ -27,7 +29,7 @@ fn create_ownership(json_override: &str) -> ResponsibilitySignals {
     }"#;
     let mut val: serde_json::Value = serde_json::from_str(base).unwrap();
     let overrides: serde_json::Value = serde_json::from_str(json_override).unwrap();
-    
+
     if let (Some(tgt), Some(src)) = (val.as_object_mut(), overrides.as_object()) {
         for (k, v) in src {
             tgt.insert(k.clone(), v.clone());
@@ -45,7 +47,8 @@ fn test_ownership_normalization_empty() {
 
 #[test]
 fn test_ownership_normalization_strong() {
-    let ownership = create_ownership(r#"{
+    let ownership = create_ownership(
+        r#"{
         "symbol_responsibility": [
             {
                 "entity": {
@@ -66,11 +69,12 @@ fn test_ownership_normalization_strong() {
                 "supporting_commits": []
             }
         ]
-    }"#);
+    }"#,
+    );
 
     let n = normalize_ownership(&ownership);
     assert_eq!(n.len(), 1);
-    
+
     // 0.9 * 20 = 18 + 2 (contributors) = 20
     assert_eq!(n[0].strength(), 20);
     assert!(n[0].description().contains("Strong responsibility"));

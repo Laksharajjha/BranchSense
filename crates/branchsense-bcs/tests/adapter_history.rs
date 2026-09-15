@@ -1,3 +1,5 @@
+//! Tests for history normalization.
+
 use branchsense_bcs::adapter::normalize_history;
 use branchsense_history::HistoricalSignals;
 
@@ -29,7 +31,7 @@ fn create_history(json_override: &str) -> HistoricalSignals {
     }"#;
     let mut val: serde_json::Value = serde_json::from_str(base).unwrap();
     let overrides: serde_json::Value = serde_json::from_str(json_override).unwrap();
-    
+
     if let (Some(tgt), Some(src)) = (val.as_object_mut(), overrides.as_object()) {
         for (k, v) in src {
             tgt.insert(k.clone(), v.clone());
@@ -47,7 +49,8 @@ fn test_history_normalization_empty() {
 
 #[test]
 fn test_history_normalization_co_change() {
-    let history = create_history(r#"{
+    let history = create_history(
+        r#"{
         "symbol_co_change": [
             {
                 "left": {"document": "src/System.java", "qualified_name": "com.example.Foo", "kind": "Type"},
@@ -65,11 +68,12 @@ fn test_history_normalization_co_change() {
                 "age_in_commits": 5
             }
         ]
-    }"#);
+    }"#,
+    );
 
     let n = normalize_history(&history);
     assert_eq!(n.len(), 1);
-    
+
     // 2 co-changes * 5 = 10, plus recency boost of 5 = 15
     assert_eq!(n[0].strength(), 15);
     assert!(n[0].description().contains("Recent historical co-changes"));
@@ -78,7 +82,8 @@ fn test_history_normalization_co_change() {
 
 #[test]
 fn test_history_normalization_truncated() {
-    let history = create_history(r#"{
+    let history = create_history(
+        r#"{
         "evidence": {
             "identity": "eval-1",
             "relation": "Subject",
@@ -95,7 +100,8 @@ fn test_history_normalization_truncated() {
             },
             "state": "Truncated"
         }
-    }"#);
+    }"#,
+    );
 
     let n = normalize_history(&history);
     assert_eq!(n.len(), 1);

@@ -1,11 +1,13 @@
+//! Tests for impact normalization.
+
 use branchsense_bcs::adapter::normalize_impact;
-use branchsense_impact::{ImpactSet};
+use branchsense_impact::ImpactSet;
 
 fn create_impact_set(json_override: &str) -> ImpactSet {
     let empty = ImpactSet::default();
     let mut val: serde_json::Value = serde_json::to_value(&empty).unwrap();
     let overrides: serde_json::Value = serde_json::from_str(json_override).unwrap();
-    
+
     // Merge overrides into default
     if let (Some(tgt), Some(src)) = (val.as_object_mut(), overrides.as_object()) {
         for (k, v) in src {
@@ -24,7 +26,8 @@ fn test_impact_normalization_empty() {
 
 #[test]
 fn test_impact_normalization_direct_vs_transitive() {
-    let direct = create_impact_set(r#"{
+    let direct = create_impact_set(
+        r#"{
         "entries": [{
             "impacted_symbol": "com.example.Foo",
             "causes": [{
@@ -46,9 +49,11 @@ fn test_impact_normalization_direct_vs_transitive() {
             "max_depth": 1,
             "truncated": false
         }
-    }"#);
+    }"#,
+    );
 
-    let transitive = create_impact_set(r#"{
+    let transitive = create_impact_set(
+        r#"{
         "entries": [{
             "impacted_symbol": "com.example.Foo",
             "causes": [{
@@ -70,11 +75,12 @@ fn test_impact_normalization_direct_vs_transitive() {
             "max_depth": 3,
             "truncated": false
         }
-    }"#);
+    }"#,
+    );
 
     let n_direct = normalize_impact(&direct);
     let n_trans = normalize_impact(&transitive);
-    
+
     assert_eq!(n_direct.len(), 1);
     assert_eq!(n_trans.len(), 1);
     assert!(n_direct[0].strength() > n_trans[0].strength());
@@ -83,7 +89,8 @@ fn test_impact_normalization_direct_vs_transitive() {
 
 #[test]
 fn test_impact_normalization_signature_consumer_and_truncation() {
-    let impact = create_impact_set(r#"{
+    let impact = create_impact_set(
+        r#"{
         "entries": [{
             "impacted_symbol": "com.example.Foo",
             "causes": [{
@@ -105,7 +112,8 @@ fn test_impact_normalization_signature_consumer_and_truncation() {
             "max_depth": 1,
             "truncated": true
         }
-    }"#);
+    }"#,
+    );
 
     let n = normalize_impact(&impact);
     // direct (5) + sig consumer (10) + truncated (20) = 35

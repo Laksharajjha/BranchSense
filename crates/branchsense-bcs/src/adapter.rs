@@ -1,3 +1,5 @@
+#![allow(clippy::cast_possible_truncation)]
+
 //! Adapters for converting subsystem-specific models into normalized BCS evidence.
 
 use crate::normalization::{BcsEvidenceCategory, BcsNormalizedEvidence};
@@ -55,16 +57,16 @@ pub fn normalize_impact(impact: &ImpactSet) -> Vec<BcsNormalizedEvidence> {
     strength += (stats.direct_impacts() as u32) * 5;
     strength += (stats.transitive_impacts() as u32) * 2;
     strength += signature_consumers * 10;
-    
+
     if stats.truncated() {
         strength += 20;
     }
 
     // Ensure we provide a non-zero minimum if there are entries
-    let strength_u8 = std::cmp::max(1, std::cmp::min(100, strength)) as u8;
+    let strength_u8 = strength.clamp(1, 100) as u8;
 
     let description = if signature_consumers > 0 {
-        format!("Semantic impact with {} signature consumer(s)", signature_consumers)
+        format!("Semantic impact with {signature_consumers} signature consumer(s)")
     } else if stats.transitive_impacts() > 0 {
         format!("Transitive semantic impact (depth {})", stats.max_depth())
     } else {
@@ -117,10 +119,10 @@ pub fn normalize_overlap(overlap: &OverlapSet) -> Vec<BcsNormalizedEvidence> {
     // Shared impact shows common downstream dependencies.
     strength += shared_impacts * 5;
 
-    let strength_u8 = std::cmp::max(1, std::cmp::min(100, strength)) as u8;
-    
+    let strength_u8 = strength.clamp(1, 100) as u8;
+
     let description = if direct_changes > 0 {
-        format!("Direct structural overlap ({} symbol(s))", direct_changes)
+        format!("Direct structural overlap ({direct_changes} symbol(s))")
     } else if impact_changes > 0 || cross_impacts > 0 {
         "Direct causal overlap".to_owned()
     } else {
@@ -141,7 +143,7 @@ pub fn normalize_overlap(overlap: &OverlapSet) -> Vec<BcsNormalizedEvidence> {
 pub fn normalize_history(signals: &HistoricalSignals) -> Vec<BcsNormalizedEvidence> {
     let mut entities = Vec::new();
     let mut total_co_changes = 0;
-    
+
     for signal in signals.symbol_co_change() {
         entities.push(format!(
             "{} & {}",
@@ -151,15 +153,13 @@ pub fn normalize_history(signals: &HistoricalSignals) -> Vec<BcsNormalizedEviden
         total_co_changes += signal.co_change_count();
     }
     for signal in signals.file_co_change() {
-        entities.push(format!(
-            "{} & {}",
-            signal.left().display(),
-            signal.right().display()
-        ));
+        entities.push(format!("{} & {}", signal.left().display(), signal.right().display()));
         total_co_changes += signal.co_change_count();
     }
 
-    if entities.is_empty() && signals.evidence().state() == branchsense_semantic::EvidenceState::Observed {
+    if entities.is_empty()
+        && signals.evidence().state() == branchsense_semantic::EvidenceState::Observed
+    {
         // If there are no entities and the evidence is fully observed, it's just an empty set of historical signals.
         return Vec::new();
     }
@@ -187,13 +187,13 @@ pub fn normalize_history(signals: &HistoricalSignals) -> Vec<BcsNormalizedEviden
     }
 
     // Minimum strength if we generated evidence but calculated 0
-    let strength_u8 = std::cmp::max(1, std::cmp::min(100, strength)) as u8;
+    let strength_u8 = strength.clamp(1, 100) as u8;
 
     let description = if total_co_changes > 0 {
         if recency_boost > 0 {
-            format!("Recent historical co-changes ({} instance(s))", total_co_changes)
+            format!("Recent historical co-changes ({total_co_changes} instance(s))")
         } else {
-            format!("Historical co-changes ({} instance(s))", total_co_changes)
+            format!("Historical co-changes ({total_co_changes} instance(s))")
         }
     } else if signals.evidence().state() == branchsense_semantic::EvidenceState::Truncated {
         "Truncated history".to_owned()
@@ -249,7 +249,9 @@ pub fn normalize_ownership(signals: &ResponsibilitySignals) -> Vec<BcsNormalized
         }
     }
 
-    if entities.is_empty() && signals.evidence().state() == branchsense_semantic::EvidenceState::Observed {
+    if entities.is_empty()
+        && signals.evidence().state() == branchsense_semantic::EvidenceState::Observed
+    {
         return Vec::new();
     }
 
@@ -274,7 +276,7 @@ pub fn normalize_ownership(signals: &ResponsibilitySignals) -> Vec<BcsNormalized
         strength += 5;
     }
 
-    let strength_u8 = std::cmp::max(1, std::cmp::min(100, strength)) as u8;
+    let strength_u8 = strength.clamp(1, 100) as u8;
 
     let description = if highest_concentration > 0.5 {
         "Strong responsibility concentration".to_owned()
