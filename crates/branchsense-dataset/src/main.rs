@@ -12,10 +12,7 @@ use std::process::Command;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 fn git(repo_path: &Path, args: &[&str]) -> Result<String> {
-    let output = Command::new("git")
-        .current_dir(repo_path)
-        .args(args)
-        .output()?;
+    let output = Command::new("git").current_dir(repo_path).args(args).output()?;
     if !output.status.success() {
         return Err(format!("git command failed: {args:?}").into());
     }
