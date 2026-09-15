@@ -1,0 +1,13 @@
+[package]
+name = "branchsense-dataset"
+version = "0.1.0-alpha"
+edition = "2021"
+
+[dependencies]
+branchsense-semantic = { path = "../branchsense-semantic" }
+branchsense-evaluation = { path = "../branchsense-evaluation" }
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true
