@@ -83,22 +83,57 @@ pub fn normalize_impact(impact: &ImpactSet) -> Vec<BcsNormalizedEvidence> {
 /// Normalize an `OverlapSet` into standard evidence.
 #[must_use]
 pub fn normalize_overlap(overlap: &OverlapSet) -> Vec<BcsNormalizedEvidence> {
-    let mut evidence = Vec::new();
+    if overlap.is_empty() {
+        return Vec::new();
+    }
+
     let mut entities: Vec<String> = Vec::new();
+    let mut direct_changes = 0;
+    let mut impact_changes = 0;
+    let mut cross_impacts = 0;
+    let mut shared_impacts = 0;
+
     for e in overlap.entries() {
+        match e.explanation().kind() {
+            branchsense_overlap::OverlapKind::DirectChange => direct_changes += 1,
+            branchsense_overlap::OverlapKind::ImpactChange => impact_changes += 1,
+            branchsense_overlap::OverlapKind::CrossImpact => cross_impacts += 1,
+            branchsense_overlap::OverlapKind::SharedImpact => shared_impacts += 1,
+        }
         for target in e.explanation().targets() {
             entities.push(target.as_str().to_owned());
         }
     }
 
-    evidence.push(BcsNormalizedEvidence::new(
+    entities.sort();
+    entities.dedup();
+
+    let mut strength: u32 = 0;
+    // Direct change is the strongest form of overlap.
+    strength += direct_changes * 30;
+    // Cross/Impact changes show direct dependencies between changed logic.
+    strength += impact_changes * 15;
+    strength += cross_impacts * 15;
+    // Shared impact shows common downstream dependencies.
+    strength += shared_impacts * 5;
+
+    let strength_u8 = std::cmp::max(1, std::cmp::min(100, strength)) as u8;
+    
+    let description = if direct_changes > 0 {
+        format!("Direct structural overlap ({} symbol(s))", direct_changes)
+    } else if impact_changes > 0 || cross_impacts > 0 {
+        "Direct causal overlap".to_owned()
+    } else {
+        "Shared downstream impact".to_owned()
+    };
+
+    vec![BcsNormalizedEvidence::new(
         BcsEvidenceCategory::Overlap,
         overlap.evidence().clone(),
         entities,
-        "Structural overlap".to_owned(),
-        5,
-    ));
-    evidence
+        description,
+        strength_u8,
+    )]
 }
 
 /// Normalize `HistoricalSignals` into standard evidence.
