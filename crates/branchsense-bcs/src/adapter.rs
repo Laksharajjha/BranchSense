@@ -213,15 +213,84 @@ pub fn normalize_history(signals: &HistoricalSignals) -> Vec<BcsNormalizedEviden
 /// Normalize `ResponsibilitySignals` into standard evidence.
 #[must_use]
 pub fn normalize_ownership(signals: &ResponsibilitySignals) -> Vec<BcsNormalizedEvidence> {
-    let mut evidence = Vec::new();
-    let entities = Vec::new();
+    let mut entities = Vec::new();
+    let mut total_active_contributors = 0;
+    let mut highest_concentration: f64 = 0.0;
 
-    evidence.push(BcsNormalizedEvidence::new(
+    for ev in signals.symbol_responsibility() {
+        match ev.entity() {
+            branchsense_ownership::ResponsibilityEntity::Symbol(key) => {
+                entities.push(key.qualified_name().to_owned());
+            }
+            branchsense_ownership::ResponsibilityEntity::File(path) => {
+                entities.push(path.display().to_string());
+            }
+        }
+        total_active_contributors += ev.concentration().active_contributors();
+        let share = ev.concentration().top_contributor_share();
+        if share > highest_concentration {
+            highest_concentration = share;
+        }
+    }
+
+    for ev in signals.file_responsibility() {
+        match ev.entity() {
+            branchsense_ownership::ResponsibilityEntity::Symbol(key) => {
+                entities.push(key.qualified_name().to_owned());
+            }
+            branchsense_ownership::ResponsibilityEntity::File(path) => {
+                entities.push(path.display().to_string());
+            }
+        }
+        total_active_contributors += ev.concentration().active_contributors();
+        let share = ev.concentration().top_contributor_share();
+        if share > highest_concentration {
+            highest_concentration = share;
+        }
+    }
+
+    if entities.is_empty() && signals.evidence().state() == branchsense_semantic::EvidenceState::Observed {
+        return Vec::new();
+    }
+
+    entities.sort();
+    entities.dedup();
+
+    let mut strength: u32 = 0;
+
+    // Scale strength by highest concentration (0-1) * 20.
+    if highest_concentration > 0.0 {
+        #[allow(clippy::cast_possible_truncation)]
+        #[allow(clippy::cast_sign_loss)]
+        let bonus = (highest_concentration * 20.0) as u32;
+        strength += bonus;
+    }
+
+    if total_active_contributors > 0 {
+        strength += std::cmp::min(10, total_active_contributors as u32);
+    }
+
+    if signals.evidence().state() == branchsense_semantic::EvidenceState::Truncated {
+        strength += 5;
+    }
+
+    let strength_u8 = std::cmp::max(1, std::cmp::min(100, strength)) as u8;
+
+    let description = if highest_concentration > 0.5 {
+        "Strong responsibility concentration".to_owned()
+    } else if total_active_contributors > 0 {
+        "Distributed responsibility".to_owned()
+    } else if signals.evidence().state() == branchsense_semantic::EvidenceState::Truncated {
+        "Truncated ownership data".to_owned()
+    } else {
+        "Responsibility signals".to_owned()
+    };
+
+    vec![BcsNormalizedEvidence::new(
         BcsEvidenceCategory::Ownership,
         signals.evidence().clone(),
         entities,
-        "Responsibility overlap".to_owned(),
-        5,
-    ));
-    evidence
+        description,
+        strength_u8,
+    )]
 }
