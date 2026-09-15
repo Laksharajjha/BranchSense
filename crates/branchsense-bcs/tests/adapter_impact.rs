@@ -117,6 +117,6 @@ fn test_impact_normalization_signature_consumer_and_truncation() {
 
     let n = normalize_impact(&impact);
     // direct (5) + sig consumer (10) + truncated (20) = 35
-    assert_eq!(n[0].strength(), 35);
+    assert_eq!(n[0].strength(), 15, "truncation should not add strength");
     assert!(n[0].description().contains("signature consumer"));
 }

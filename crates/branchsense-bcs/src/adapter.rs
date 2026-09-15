@@ -58,10 +58,6 @@ pub fn normalize_impact(impact: &ImpactSet) -> Vec<BcsNormalizedEvidence> {
     strength += (stats.transitive_impacts() as u32) * 2;
     strength += signature_consumers * 10;
 
-    if stats.truncated() {
-        strength += 20;
-    }
-
     // Ensure we provide a non-zero minimum if there are entries
     let strength_u8 = strength.clamp(1, 100) as u8;
 
@@ -69,8 +65,12 @@ pub fn normalize_impact(impact: &ImpactSet) -> Vec<BcsNormalizedEvidence> {
         format!("Semantic impact with {signature_consumers} signature consumer(s)")
     } else if stats.transitive_impacts() > 0 {
         format!("Transitive semantic impact (depth {})", stats.max_depth())
-    } else {
+    } else if stats.direct_impacts() > 0 {
         "Direct semantic impact".to_owned()
+    } else if stats.truncated() {
+        "Truncated semantic impact".to_owned()
+    } else {
+        "Semantic impact".to_owned()
     };
 
     vec![BcsNormalizedEvidence::new(
@@ -108,10 +108,6 @@ pub fn normalize_overlap(overlap: &OverlapSet) -> Vec<BcsNormalizedEvidence> {
     strength += (stats.cross_impacts() as u32) * 15;
     // Shared impact shows common downstream dependencies.
     strength += (stats.shared_impacts() as u32) * 5;
-
-    if stats.truncated() {
-        strength += 20;
-    }
 
     let strength_u8 = strength.clamp(1, 100) as u8;
 
@@ -178,11 +174,6 @@ pub fn normalize_history(signals: &HistoricalSignals) -> Vec<BcsNormalizedEviden
         }
     }
     strength += recency_boost;
-
-    // Truncation means there might be more history we couldn't analyze
-    if signals.evidence().state() == branchsense_semantic::EvidenceState::Truncated {
-        strength += 10;
-    }
 
     // Minimum strength if we generated evidence but calculated 0
     let strength_u8 = strength.clamp(1, 100) as u8;
@@ -268,10 +259,6 @@ pub fn normalize_ownership(signals: &ResponsibilitySignals) -> Vec<BcsNormalized
 
     if total_active_contributors > 0 {
         strength += std::cmp::min(10, total_active_contributors as u32);
-    }
-
-    if signals.evidence().state() == branchsense_semantic::EvidenceState::Truncated {
-        strength += 5;
     }
 
     let strength_u8 = strength.clamp(1, 100) as u8;
