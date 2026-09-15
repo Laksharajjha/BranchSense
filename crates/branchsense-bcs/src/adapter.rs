@@ -139,24 +139,75 @@ pub fn normalize_overlap(overlap: &OverlapSet) -> Vec<BcsNormalizedEvidence> {
 /// Normalize `HistoricalSignals` into standard evidence.
 #[must_use]
 pub fn normalize_history(signals: &HistoricalSignals) -> Vec<BcsNormalizedEvidence> {
-    let mut evidence = Vec::new();
     let mut entities = Vec::new();
+    let mut total_co_changes = 0;
+    
     for signal in signals.symbol_co_change() {
         entities.push(format!(
             "{} & {}",
             signal.left().qualified_name(),
             signal.right().qualified_name()
         ));
+        total_co_changes += signal.co_change_count();
+    }
+    for signal in signals.file_co_change() {
+        entities.push(format!(
+            "{} & {}",
+            signal.left().display(),
+            signal.right().display()
+        ));
+        total_co_changes += signal.co_change_count();
     }
 
-    evidence.push(BcsNormalizedEvidence::new(
+    if entities.is_empty() && signals.evidence().state() == branchsense_semantic::EvidenceState::Observed {
+        // If there are no entities and the evidence is fully observed, it's just an empty set of historical signals.
+        return Vec::new();
+    }
+
+    entities.sort();
+    entities.dedup();
+
+    let mut strength: u32 = 0;
+
+    // Base strength from co-changes
+    strength += (total_co_changes as u32) * 5;
+
+    // Recency boost: if there is recent activity (age_in_commits <= 10), add strength
+    let mut recency_boost = 0;
+    for signal in signals.recency() {
+        if signal.age_in_commits() <= 10 {
+            recency_boost += 5;
+        }
+    }
+    strength += recency_boost;
+
+    // Truncation means there might be more history we couldn't analyze
+    if signals.evidence().state() == branchsense_semantic::EvidenceState::Truncated {
+        strength += 10;
+    }
+
+    // Minimum strength if we generated evidence but calculated 0
+    let strength_u8 = std::cmp::max(1, std::cmp::min(100, strength)) as u8;
+
+    let description = if total_co_changes > 0 {
+        if recency_boost > 0 {
+            format!("Recent historical co-changes ({} instance(s))", total_co_changes)
+        } else {
+            format!("Historical co-changes ({} instance(s))", total_co_changes)
+        }
+    } else if signals.evidence().state() == branchsense_semantic::EvidenceState::Truncated {
+        "Truncated history".to_owned()
+    } else {
+        "Historical signals".to_owned()
+    };
+
+    vec![BcsNormalizedEvidence::new(
         BcsEvidenceCategory::History,
         signals.evidence().clone(),
         entities,
-        "Historical co-changes".to_owned(),
-        5,
-    ));
-    evidence
+        description,
+        strength_u8,
+    )]
 }
 
 /// Normalize `ResponsibilitySignals` into standard evidence.
