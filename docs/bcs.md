@@ -1,3 +1,6 @@
+> [!NOTE] CANONICAL V1/V1.1 SPECIFICATION
+> This document defines the actual current implementation of the Branch Collision Score.
+
 # Branch Collision Score (BCS)
 
 ## 1. What BCS Is
@@ -17,7 +20,7 @@ BCS is **not** a probability, confidence, or likelihood score. It does not predi
 Each subsystem's raw analysis (e.g., `CollisionAssessment`, `ImpactSet`) is adapted into a `BcsNormalizedEvidence` struct. This isolation guarantees the scoring engine remains decoupled from subsystem implementation details while retaining strict provenance and identities.
 
 ## 5. Evidence Ledger & Deduplication
-Raw evidence often overlaps (e.g., a direct collision is also structurally an overlap). The `EvidenceLedger` uses `ObservationIdentity` to ensure duplicate evidence facts are squashed correctly based on their maximum observed strength, eliminating double-counting risks.
+Raw evidence often overlaps (e.g., a direct collision is also structurally an overlap). The `EvidenceLedger` explicitly guarantees that **exact duplicate observations are deduplicated by ObservationIdentity**. Identical graph events inherited through `EvidenceEnvelope::derived_from()` yield identical identities, ensuring only the strongest normalized signal is counted. Note: this structurally prevents exact double-counting, but correlated or derived observations spanning distinct identities may still sum independently.
 
 ## 6. Abstention Gate
 Before scoring, BCS enforces an abstention gate via `AbstentionDecision`:
