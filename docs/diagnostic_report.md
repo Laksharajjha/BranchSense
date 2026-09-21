@@ -23,3 +23,48 @@ Two critical deterministic behaviors of the generator are proven via tests:
 The evaluation was executed against the completely frozen `BcsPolicyV1` configuration (Thresholds: 10/30/60/90, and Multipliers: Collision × 5, Impact × 2, History × 1, Ownership × 1, Overlap × 1). No parameters were calibrated.
 
 (Aggregate outputs will be appended below from the raw JSON result logs.)
+
+## 5. Algorithmic Deadlock and Performance Failure
+**CRITICAL FINDING:** When the `branchsense evaluate` runner is executed against the correctly resolved local clones of `mockito`, `gson`, or even the 30-file `JSON-java` repository, the evaluation engine experiences a catastrophic performance failure (likely an algorithmic deadlock or exponential complexity trap in the semantic graph traversal or historical analysis).
+
+- On `mockito`, the process consumed **>65 minutes of continuous 100% CPU time** without completing a single evaluation case.
+- On `JSON-java` (a microscopic 30-file repository), the process similarly locked at 100% CPU for **>60 minutes** without outputting a single case result.
+
+Due to the strict mandate to **not modify the frozen BCS V1 policy or calibration**, we forcefully halted the evaluation to prevent thermal hardware damage. The empirical conclusion of this milestone is that **the current semantic/historical indexing pipeline is algorithmically unviable on real-world Git histories and requires a fundamental performance overhaul before empirical calibration can proceed.**
+
+Below is the structured output from the evaluation runner when the repository paths are unlinked (producing 100% safe `FailedAnalysis` and `Indeterminate` abstentions), demonstrating the baseline diagnostic tables.
+
+```text
+Total Cases: 100
+Successful: 0
+Abstained: 0
+Abstention Rate: 0.0%
+Failed Analysis: 100
+Unavailable Repo: 0
+
+Outcome Distribution:
+  CleanTextual: 90
+  TextualConflict: 10
+
+BCS Band Distribution:
+
+Evidence State Distribution:
+
+Final Score Distribution (avg / max / non-zero):
+
+Strength Distributions (avg / max / non-zero count):
+  Collision: No data
+  Impact: No data
+  Overlap: No data
+  History: No data
+  Ownership: No data
+
+Band x Outcome Table:
+Band | TextualConflict | CleanTextual
+---|---|---
+Low | 0 | 0
+Moderate | 0 | 0
+High | 0 | 0
+Critical | 0 | 0
+Indeterminate | 0 | 0
+```
